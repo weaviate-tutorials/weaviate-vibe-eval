@@ -3,12 +3,15 @@ import os
 import json
 import time
 import datetime
+import re
 
 from weaviate_vibe_eval.models.model import ModelNames
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
-from weaviate_vibe_eval.utils.code_execution import generate_and_execute
+from weaviate_vibe_eval.utils.code_execution import generate_and_execute, extract_python_code
 from weaviate_vibe_eval.models import create_model
 from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS
+from weaviate_vibe_eval.models.judge_model import JudgeModel
+from weaviate_vibe_eval.benchmarks.canonical_implementations import CANONICAL_IMPLEMENTATIONS
 
 class BenchmarkRunner:
     """Core functionality for running benchmarks."""
@@ -20,6 +23,8 @@ class BenchmarkRunner:
         models: List[str] = None,
         tasks: List[str] = None,
         verbose: bool = False,
+        use_judge: bool = False,
+        judge_model: Optional[ModelNames] = None,
     ):
         self.output_dir = output_dir
         self.providers = providers
@@ -56,6 +61,9 @@ class BenchmarkRunner:
         self.docker_executor = None
         self.env_vars = {}
         self.results = {}
+        self.use_judge = use_judge
+        self.judge_model = judge_model or ModelNames.CLAUDE_3_7_SONNET_20250219
+        self.judge = None if not use_judge else JudgeModel(model_name=self.judge_model)
 
     def run_benchmarks(self):
         """Run all benchmarks and collect results."""
@@ -204,6 +212,36 @@ class BenchmarkRunner:
                     "error": "No code was executed",
                 }
 
+            # Add judge evaluation if enabled
+            if self.use_judge and task_id in CANONICAL_IMPLEMENTATIONS:
+                canonical_code = CANONICAL_IMPLEMENTATIONS[task_id]
+                task_description = task_data.get("description", "")
+
+                execution_info = None
+                if execution_result:
+                    execution_info = {
+                        "stdout": stdout,
+                        "stderr": stderr,
+                        "exit_code": exit_code
+                    }
+
+                generated_code = extract_python_code(generated_text)
+
+                print(f"  🧠 Running LLM judge evaluation...")
+                evaluation = self.judge.evaluate_code(
+                    generated_code=generated_code,
+                    canonical_code=canonical_code,
+                    task_description=task_description,
+                    execution_result=execution_info
+                )
+
+                # Add evaluation results to task result
+                task_result["judge_evaluation"] = evaluation
+
+                # Print brief evaluation summary
+                overall_score = evaluation.get("overall_score", 0)
+                print(f"  📊 Judge score: {overall_score}/5")
+
             # Store results
             self.results[model_id][task_id] = task_result
             return task_result
@@ -273,14 +311,37 @@ class BenchmarkRunner:
                         f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
                     )
 
-def run_default_benchmarks():
+        # Add judge evaluation summary if available
+        if self.use_judge:
+            print("\n--- Judge Evaluation Summary ---")
+            for model_id, model_results in self.results.items():
+                print(f"\n{model_id}:")
+                for task_id, task_result in model_results.items():
+                    if "judge_evaluation" in task_result:
+                        eval_result = task_result["judge_evaluation"]
+                        overall = eval_result.get("overall_score", "N/A")
+                        print(f"  {task_id}: {overall}/5")
+
+                        # Print individual criteria scores
+                        if "scores" in eval_result:
+                            for criterion, score in eval_result["scores"].items():
+                                print(f"    - {criterion}: {score}/5")
+
+def run_default_benchmarks(use_judge=False, judge_model=None):
     """Run benchmarks with default settings."""
     print("Running Weaviate benchmarks with default settings...")
+
+    judge_info = ""
+    if use_judge:
+        judge_info = f" with LLM judge evaluation"
+
+    print(f"Running Weaviate benchmarks{judge_info}...")
 
     # Create and run benchmark with default settings
     runner = BenchmarkRunner(
         output_dir="results",
-        # Use default providers and models
+        use_judge=use_judge,
+        judge_model=judge_model
     )
 
     return runner.run_benchmarks()
