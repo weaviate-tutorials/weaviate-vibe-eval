@@ -67,7 +67,7 @@ class BaseModel(ABC):
 
     @abstractmethod
     def generate(
-        self, prompt: str, temperature: Optional[float] = 0.7, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = 0.1, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from the model based on the prompt.
@@ -118,7 +118,7 @@ class AnthropicModel(BaseModel):
         self.provider = "anthropic"
 
     def generate(
-        self, prompt: str, temperature: Optional[float] = None, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = 0.1, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from Claude based on the prompt.
@@ -173,7 +173,7 @@ class CohereModel(BaseModel):
         self.provider = "cohere"
 
     def generate(
-        self, prompt: str, temperature: Optional[float] = None, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = 0.1, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from Cohere based on the prompt.
@@ -231,7 +231,7 @@ class OpenAIModel(BaseModel):
         self.provider = "openai"
 
     def generate(
-        self, prompt: str, temperature: Optional[float] = None, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = 0.1, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from OpenAI based on the prompt.
@@ -286,7 +286,7 @@ class GeminiModel(BaseModel):
         self.provider = "gemini"
 
     def generate(
-        self, prompt: str, temperature: Optional[float] = None, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = 0.1, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from Gemini based on the prompt.

@@ -305,21 +305,3 @@ class BenchmarkRunner:
                         # Only print high-level differences summary
                         if "differences_summary" in comp_result:
                             print(f"    Summary: {comp_result['differences_summary']}")
-
-
-def run_default_benchmarks(use_judge=False, judge_model=None):
-    """Run benchmarks with default settings."""
-    print("Running Weaviate benchmarks with default settings...")
-
-    judge_info = ""
-    if use_judge:
-        judge_info = f" with code comparison"
-
-    print(f"Running Weaviate benchmarks{judge_info}...")
-
-    # Create and run benchmark with default settings
-    runner = BenchmarkRunner(
-        output_dir="results", use_judge=use_judge, judge_model=judge_model
-    )
-
-    return runner.run_benchmarks()

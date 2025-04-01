@@ -58,7 +58,15 @@ class JudgeModel:
     ) -> str:
         """Create a prompt for comparing generated code with canonical implementation."""
 
-        return f"""You are an expert code reviewer. Your task is to compare generated Python code for a Weaviate task against a canonical implementation.
+        return f"""
+You are an expert code reviewer.
+Your task is to compare generated Python code for a Weaviate task against
+a canonical implementation.
+
+In particular, you are looking to see if the generated code is using the
+Weaviate API in the correct way. They may be using the API incorrectly, or
+recalling an older version of the API than the canonical implementation.
+
 
 ### Task Description
 {task_description}
@@ -76,8 +84,9 @@ class JudgeModel:
 ### Instructions
 1. Analyze how similar the generated code is to the canonical implementation.
 2. Identify key differences in approach, structure, functionality, and API usage.
-3. Assign a similarity score from 1-5 (where 5 means nearly identical in approach and functionality).
-4. Provide a concise summary of the differences (1-2 sentences).
+3. Explicitly state the differences in usage, such as classes, functions, or parameters.
+4. Evaluate a similarity score from 1-5 (where 5 means nearly identical in approach and functionality).
+5. Provide a concise summary of the differences (1-2 sentences).
 
 Focus ONLY on comparing the implementations, not on evaluating correctness or general code quality.
 
