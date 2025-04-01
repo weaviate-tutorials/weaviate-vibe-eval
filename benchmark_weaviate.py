@@ -129,7 +129,8 @@ def run_benchmark(
 
     # Setup Docker executor with network access
     docker_executor = DockerExecutor(
-        network="bridge", timeout=120  # Longer timeout for complex operations
+        network="bridge",  # Longer timeout for complex operations
+        timeout=120
     )
 
     # Load Weaviate credentials from environment
@@ -173,7 +174,7 @@ def run_benchmark(
                         docker_executor=docker_executor,
                         model_params=None,
                         inputs=None,
-                        packages=["weaviate-client", "python-dotenv", "requests"],
+                        # No need to specify packages since they're in the prebuilt image
                         env_vars=env_vars,
                     )
 

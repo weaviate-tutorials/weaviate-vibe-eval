@@ -12,7 +12,8 @@ class DockerExecutor:
 
     def __init__(
         self,
-        image: str = "python:3.9-slim",
+        image: str = "weaviate-vibe-benchmark:latest",
+        use_prebuilt: bool = True,
         timeout: int = 30,
         memory_limit: str = "512m",
         network: str = "none",
@@ -24,6 +25,7 @@ class DockerExecutor:
 
         Args:
             image: Docker image to use for execution
+            use_prebuilt: Whether to use a prebuilt image with common packages
             timeout: Maximum execution time in seconds
             memory_limit: Maximum memory allocation for container
             network: Network mode (default 'none' for isolation)
@@ -31,6 +33,7 @@ class DockerExecutor:
             port_mappings: Optional port mappings {container_port: host_port}
         """
         self.image = image
+        self.use_prebuilt = use_prebuilt
         self.timeout = timeout
         self.memory_limit = memory_limit
         self.network = network
@@ -49,6 +52,7 @@ class DockerExecutor:
             code: Python code to execute
             inputs: Optional dictionary of input variables
             packages: Optional list of pip packages to install before execution
+                     (only used if use_prebuilt=False)
             env_vars: Optional environment variables to set before execution
         Returns:
             Tuple of (stdout, stderr, exit_code)
@@ -65,7 +69,7 @@ class DockerExecutor:
 
             # Create setup script for installing packages if needed
             setup_command = ""
-            if packages:
+            if packages and not self.use_prebuilt:
                 setup_script = os.path.join(temp_dir, "setup.sh")
                 with open(setup_script, "w") as f:
                     f.write("#!/bin/bash\n")
@@ -99,18 +103,34 @@ class DockerExecutor:
                 for key, value in env_vars.items():
                     env_args += f" -e {key}={value}"
 
-            cmd = (
-                f"docker run --rm "
-                f"--name weaviate-exec-{execution_id} "
-                f"{volumes} "
-                f"{port_args} "
-                f"{env_args} "
-                f"--memory={self.memory_limit} "
-                f"--network={self.network} "
-                f"--workdir /code "
-                f"{self.image} "
-                f"bash -c '{setup_command}timeout {self.timeout} python /code/code.py {input_args}'"
-            )
+            # Simplified command when using prebuilt image and no custom packages
+            if self.use_prebuilt and not packages:
+                cmd = (
+                    f"docker run --rm "
+                    f"--name weaviate-exec-{execution_id} "
+                    f"{volumes} "
+                    f"{port_args} "
+                    f"{env_args} "
+                    f"--memory={self.memory_limit} "
+                    f"--network={self.network} "
+                    f"--workdir /code "
+                    f"{self.image} "
+                    f"python /code/code.py {input_args}"
+                )
+            else:
+                # Regular command with timeout and package installation
+                cmd = (
+                    f"docker run --rm "
+                    f"--name weaviate-exec-{execution_id} "
+                    f"{volumes} "
+                    f"{port_args} "
+                    f"{env_args} "
+                    f"--memory={self.memory_limit} "
+                    f"--network={self.network} "
+                    f"--workdir /code "
+                    f"{self.image} "
+                    f"bash -c '{setup_command}timeout {self.timeout} python /code/code.py {input_args}'"
+                )
 
             # Execute the command
             process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -131,3 +151,25 @@ class DockerExecutor:
             return result.returncode == 0
         except FileNotFoundError:
             return False
+
+    def cleanup(self):
+        """
+        Clean up resources used by the Docker executor.
+        """
+        # Find and remove any stalled containers from previous executions
+        try:
+            # List containers with our execution prefix
+            result = subprocess.run(
+                f"docker ps -a --filter name=weaviate-exec- --format '{{{{.Names}}}}'",
+                shell=True, capture_output=True, text=True
+            )
+
+            if result.stdout.strip():
+                # Found stalled containers, remove them
+                print(f"Cleaning up stalled benchmark containers: {result.stdout.strip()}")
+                for container in result.stdout.strip().split('\n'):
+                    if container:
+                        subprocess.run(f"docker rm -f {container}", shell=True)
+        except Exception as e:
+            print(f"Error during cleanup: {str(e)}")
+            pass  # Best effort cleanup
