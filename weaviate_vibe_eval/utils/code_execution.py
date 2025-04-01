@@ -37,6 +37,8 @@ def generate_and_execute(
     docker_executor: DockerExecutor,
     model_params: Optional[Dict[str, Any]] = None,
     inputs: Optional[Dict[str, Any]] = None,
+    packages: Optional[List[str]] = None,
+    env_vars: Optional[Dict[str, str]] = None,
 ) -> Tuple[str, Optional[Tuple[str, str, int]]]:
     """
     Generate code using any model and execute it in a Docker container.
@@ -65,7 +67,7 @@ def generate_and_execute(
         return generated_text, None
 
     # Execute the code block
-    execution_result = docker_executor.execute_code(code_block, inputs)
+    execution_result = docker_executor.execute_code(code=code_block, inputs=inputs, packages=packages, env_vars=env_vars)
     return generated_text, execution_result
 
 

@@ -27,25 +27,32 @@ class AnthropicModel(BaseModel):
         self.client = anthropic.Anthropic(api_key=api_key)
 
     def generate(
-        self, prompt: str, temperature: float = 0.7, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = None, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from Claude based on the prompt.
 
         Args:
             prompt: The input prompt for the model
-            temperature: Controls randomness in generation
+            temperature: Controls randomness in generation (if None, use API default)
             max_tokens: Maximum number of tokens to generate
 
         Returns:
             Generated text as a string
         """
-        response = self.client.messages.create(
-            model=self.model_name,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        # Prepare API parameters
+        params = {
+            "model": self.model_name,
+            "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+
+        # Only include temperature if it's not None
+        if temperature is not None:
+            params["temperature"] = temperature
+
+        # Make the API call with the prepared parameters
+        response = self.client.messages.create(**params)
 
         # Extract the text content from the response
         if response.content and len(response.content) > 0:

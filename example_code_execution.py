@@ -10,7 +10,7 @@ from weaviate_vibe_eval.utils.code_execution import (
 def main():
     # Initialize the Anthropic model
     model = AnthropicModel(
-        api_key=os.environ.get("ANTHROPIC_API_KEY"), model_name="claude-3-opus-20240229"
+        api_key=os.environ.get("ANTHROPIC_API_KEY"), model_name="claude-3-7-sonnet-20250219"
     )
 
     # Initialize Docker executor

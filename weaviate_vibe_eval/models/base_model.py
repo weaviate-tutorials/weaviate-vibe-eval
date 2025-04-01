@@ -21,7 +21,7 @@ class BaseModel(ABC):
 
     @abstractmethod
     def generate(
-        self, prompt: str, temperature: float = 0.7, max_tokens: int = 2000
+        self, prompt: str, temperature: Optional[float] = 0.7, max_tokens: int = 2000
     ) -> str:
         """
         Generate text from the model based on the prompt.
