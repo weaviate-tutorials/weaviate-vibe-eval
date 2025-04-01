@@ -34,13 +34,13 @@ def mock_anthropic():
 def test_generate(mock_anthropic):
     """Test basic text generation with mock."""
     model = AnthropicModel(
-        model_name=ModelNames.CLAUDE_3_7_SONNET.value, api_key=anthropic_api_key
+        model_name=ModelNames.CLAUDE_3_7_SONNET_20250219, api_key=anthropic_api_key
     )
     result = model.generate("Hello", temperature=0.5, max_tokens=100)
 
     # Check correct parameters were passed
     mock_anthropic.messages.create.assert_called_once_with(
-        model=ModelNames.CLAUDE_3_7_SONNET.value,
+        model=ModelNames.CLAUDE_3_7_SONNET_20250219.model_name,
         max_tokens=100,
         temperature=0.5,
         messages=[{"role": "user", "content": "Hello"}],
@@ -52,12 +52,12 @@ def test_generate(mock_anthropic):
 def test_model_info():
     """Test model info returns correct data."""
     model = AnthropicModel(
-        model_name=ModelNames.CLAUDE_3_7_SONNET.value, model_params={"test": "param"}
+        model_name=ModelNames.CLAUDE_3_7_SONNET_20250219, model_params={"test": "param"}
     )
 
     info = model.get_model_info()
 
-    assert info["name"] == ModelNames.CLAUDE_3_7_SONNET.value
+    assert info["name"] == ModelNames.CLAUDE_3_7_SONNET_20250219.model_name
     assert info["params"] == {"test": "param"}
     assert info["api_based"] is True
 
@@ -66,7 +66,7 @@ def test_model_info():
 def test_real_api_generate():
     """Test real API call to generate text."""
     model = AnthropicModel(
-        model_name=ModelNames.CLAUDE_3_7_SONNET.value, api_key=anthropic_api_key
+        model_name=ModelNames.CLAUDE_3_7_SONNET_20250219, api_key=anthropic_api_key
     )
     result = model.generate("What is 2+2?", max_tokens=20)
 

@@ -4,11 +4,11 @@ import json
 import time
 import datetime
 import argparse
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 import dotenv
 
-from weaviate_vibe_eval.models.model import AnthropicModel, ModelNames
+from weaviate_vibe_eval.models.model import AnthropicModel, CohereModel, ModelNames
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 from weaviate_vibe_eval.utils.code_execution import generate_and_execute
 
@@ -16,12 +16,20 @@ from weaviate_vibe_eval.utils.code_execution import generate_and_execute
 dotenv.load_dotenv()
 
 
-def create_model(provider: str, model_name: str, api_key: Optional[str] = None):
-    """Create a model instance based on provider and model name."""
+def create_model(model_enum: ModelNames, api_key: Optional[str] = None):
+    """Create a model instance based on model enum."""
+    provider = model_enum.provider
+    model_name = model_enum.model_name
+
     if provider.lower() == "anthropic":
         return AnthropicModel(
             model_name=model_name,
             api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"),
+        )
+    elif provider.lower() == "cohere":
+        return CohereModel(
+            model_name=model_name,
+            api_key=api_key or os.environ.get("COHERE_API_KEY"),
         )
     else:
         raise ValueError(f"Unsupported provider: {provider}")
@@ -57,7 +65,7 @@ BENCHMARK_TASKS = {
 
             These environment variables are already set in the execution environment.
             """,
-        "description": "Zero-shot: Basic Weaviate connection"
+        "description": "Zero-shot: Basic Weaviate connection",
     },
     "in_context_connect": {
         "prompt": """
@@ -73,9 +81,10 @@ BENCHMARK_TASKS = {
             These environment variables are already set in the execution environment.
 
             Here is an example of how to connect to Weaviate:
-            """ + EXAMPLE_CODE,
-        "description": "In-context: Basic Weaviate connection"
-    }
+            """
+        + EXAMPLE_CODE,
+        "description": "In-context: Basic Weaviate connection",
+    },
     # Add more tasks as needed
 }
 
@@ -86,14 +95,41 @@ class BenchmarkRunner:
     def __init__(
         self,
         output_dir: str = "results",
-        providers: List[str] = ["anthropic"],
+        providers: List[str] = ["anthropic", "cohere"],
         models: List[str] = None,
         tasks: List[str] = None,
-        verbose: bool = False
+        verbose: bool = False,
     ):
         self.output_dir = output_dir
         self.providers = providers
-        self.models = models or [ModelNames.CLAUDE_3_7_SONNET.value, ModelNames.CLAUDE_3_5_HAIKU.value]
+
+        # Convert model string names to enum values
+        if models is None:
+            # Default to all models across all providers
+            self.models = list(ModelNames)
+        else:
+            # Convert string model identifiers to enums
+            self.models = []
+            for model_str in models:
+                # Try to match by enum name first (e.g., "COHERE_COMMAND_A_03_2025")
+                try:
+                    model_enum = ModelNames[model_str]
+                    self.models.append(model_enum)
+                    continue
+                except KeyError:
+                    pass
+
+                # Try to match by model name (e.g., "command-a-03-2025")
+                found = False
+                for enum_val in ModelNames:
+                    if enum_val.model_name == model_str:
+                        self.models.append(enum_val)
+                        found = True
+                        break
+
+                if not found:
+                    print(f"Warning: Unknown model '{model_str}'. Skipping.")
+
         self.task_ids = tasks  # None means all tasks
         self.verbose = verbose
         self.docker_executor = None
@@ -113,7 +149,9 @@ class BenchmarkRunner:
         wcd_key = os.environ.get("WCD_TEST_KEY")
 
         if not wcd_url or not wcd_key:
-            print("Warning: WCD_TEST_URL or WCD_TEST_KEY not set in environment. Weaviate operations may fail.")
+            print(
+                "Warning: WCD_TEST_URL or WCD_TEST_KEY not set in environment. Weaviate operations may fail."
+            )
 
         # Prepare environment variables for Docker
         self.env_vars = {"WCD_TEST_URL": wcd_url, "WCD_TEST_KEY": wcd_key}
@@ -123,9 +161,13 @@ class BenchmarkRunner:
         if self.docker_executor:
             self.docker_executor.cleanup()
 
-    def run_task_with_model(self, task_id: str, task_data: Dict[str, Any],
-                          provider: str, model_name: str) -> Dict[str, Any]:
+    def run_task_with_model(
+        self, task_id: str, task_data: Dict[str, Any], model_enum: ModelNames
+    ) -> Dict[str, Any]:
         """Run a single task with a specific model."""
+        provider = model_enum.provider
+        model_name = model_enum.model_name
+
         model_id = f"{provider}/{model_name}"
         print(f"\nRunning with model: {model_id}")
 
@@ -136,7 +178,7 @@ class BenchmarkRunner:
 
         try:
             # Create model
-            model = create_model(provider, model_name)
+            model = create_model(model_enum)
             start_time = time.time()
 
             # Generate and execute code
@@ -210,7 +252,9 @@ class BenchmarkRunner:
 
     def run_benchmarks(self):
         """Run all benchmarks and collect results."""
-        print(f"Running benchmarks with {len(self.providers)} providers and {len(self.models)} models...")
+        print(
+            f"Running benchmarks with {len(self.providers)} providers and {len(self.models)} models..."
+        )
 
         # Determine which tasks to run
         tasks_to_run = self.task_ids or list(BENCHMARK_TASKS.keys())
@@ -219,19 +263,33 @@ class BenchmarkRunner:
         self.setup()
 
         try:
-            # Run benchmarks for each provider, model, and task
-            for provider in self.providers:
-                for model_name in self.models:
-                    print(f"\n=== Running benchmarks for {provider}/{model_name} ===")
+            # Filter models by provider
+            models_to_run = [
+                model for model in self.models
+                if model.provider in self.providers
+            ]
 
-                    for task_id in tasks_to_run:
-                        if task_id in BENCHMARK_TASKS:
-                            print(f"\nTask: {task_id} - {BENCHMARK_TASKS[task_id]['description']}")
-                            self.run_task_with_model(
-                                task_id, BENCHMARK_TASKS[task_id], provider, model_name
-                            )
-                        else:
-                            print(f"Unknown task: {task_id}")
+            if not models_to_run:
+                print(f"Warning: No models match the specified providers: {self.providers}")
+                return {}
+
+            # Run benchmarks for each model and task
+            for model in models_to_run:
+                provider = model.provider
+                model_name = model.model_name
+
+                print(f"\n=== Running benchmarks for {provider}/{model_name} ===")
+
+                for task_id in tasks_to_run:
+                    if task_id in BENCHMARK_TASKS:
+                        print(
+                            f"\nTask: {task_id} - {BENCHMARK_TASKS[task_id]['description']}"
+                        )
+                        self.run_task_with_model(
+                            task_id, BENCHMARK_TASKS[task_id], model
+                        )
+                    else:
+                        print(f"Unknown task: {task_id}")
 
             # Save results to disk
             self.save_results()
@@ -263,13 +321,17 @@ class BenchmarkRunner:
         total_tasks = 0
 
         for model_id, model_results in self.results.items():
-            success_count = sum(1 for r in model_results.values() if r.get("success", False))
+            success_count = sum(
+                1 for r in model_results.values() if r.get("success", False)
+            )
             print(f"{model_id}: {success_count}/{len(model_results)} tasks successful")
             total_success += success_count
             total_tasks += len(model_results)
 
         if total_tasks > 0:
-            print(f"\nOverall success rate: {total_success}/{total_tasks} ({total_success/total_tasks:.1%})")
+            print(
+                f"\nOverall success rate: {total_success}/{total_tasks} ({total_success/total_tasks:.1%})"
+            )
 
         # Add detailed task-by-task breakdown
         print("\n--- Results by Task ---")
@@ -293,19 +355,38 @@ class BenchmarkRunner:
                     exit_code = result.get("exit_code", "N/A")
 
                     status = "✅ PASSED" if success else "❌ FAILED"
-                    print(f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})")
+                    print(
+                        f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
+                    )
 
 
 def main():
     """Main entry point for the benchmark script."""
-    parser = argparse.ArgumentParser(description="Run Weaviate code generation benchmarks")
-    parser.add_argument("--output-dir", default="results", help="Directory to store results")
-    parser.add_argument("--providers", default="anthropic", help="Comma-separated list of providers")
-    parser.add_argument("--models", help="Comma-separated list of model names")
+    parser = argparse.ArgumentParser(
+        description="Run Weaviate code generation benchmarks"
+    )
+    parser.add_argument(
+        "--output-dir", default="results", help="Directory to store results"
+    )
+    parser.add_argument(
+        "--providers", default="anthropic,cohere", help="Comma-separated list of providers"
+    )
+    parser.add_argument(
+        "--models",
+        help="Comma-separated list of model enum names (e.g., CLAUDE_3_7_SONNET_20250219,COHERE_COMMAND_A_03_2025)"
+    )
     parser.add_argument("--tasks", help="Comma-separated list of tasks to run")
     parser.add_argument("--verbose", action="store_true", help="Show detailed output")
+    parser.add_argument("--list-models", action="store_true", help="List available models and exit")
 
     args = parser.parse_args()
+
+    # If requested, list available models and exit
+    if args.list_models:
+        print("Available models:")
+        for model in ModelNames:
+            print(f"  {model.name}: {model.provider}/{model.model_name}")
+        return
 
     # Parse comma-separated lists
     providers = args.providers.split(",")
@@ -318,7 +399,7 @@ def main():
         providers=providers,
         models=models,
         tasks=tasks,
-        verbose=args.verbose
+        verbose=args.verbose,
     )
 
     runner.run_benchmarks()
