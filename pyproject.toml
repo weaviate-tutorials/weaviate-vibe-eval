@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weaviate-vibe-eval"
+version = "0.1.0"
+description = "Evaluate vibe coding abilities for Weaviate client code"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+dependencies = [
+    "anthropic",
+]
+
+[tool.setuptools]
+packages = ["weaviate_vibe_eval"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

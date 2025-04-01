@@ -36,28 +36,6 @@ class BaseModel(ABC):
         """
         pass
 
-    @abstractmethod
-    def generate_with_examples(
-        self,
-        task_description: str,
-        examples: List[Dict[str, str]],
-        query: str,
-        temperature: float = 0.3,
-    ) -> str:
-        """
-        Generate text with few-shot examples.
-
-        Args:
-            task_description: Description of the task
-            examples: List of example dictionaries containing input/output pairs
-            query: The query to answer after learning from examples
-            temperature: Controls randomness in generation
-
-        Returns:
-            Generated text as a string
-        """
-        pass
-
     def is_api_based(self) -> bool:
         """
         Whether this model uses an external API.
