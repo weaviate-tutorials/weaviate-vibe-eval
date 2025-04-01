@@ -1,17 +1,23 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Union, Any, TYPE_CHECKING
+from enum import Enum
+from typing import Dict, Optional, Union, Any
 
-if TYPE_CHECKING:
-    from weaviate_vibe_eval.models.model_names import ModelNames
+
+class ModelNames(Enum):
+    """
+    Enum for supported model names.
+    """
+    # Anthropic models
+    CLAUDE_3_7_SONNET = "claude-3-7-sonnet-latest"
+    CLAUDE_3_5_HAIKU = "claude-3-5-haiku-latest"
 
 
 class BaseModel(ABC):
     """
     Abstract base class for LLM implementations.
-    All model implementations (API-based or local) should inherit from this class.
     """
 
-    def __init__(self, model_name: Union[str, "ModelNames"], model_params: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: Union[str, ModelNames], model_params: Optional[Dict[str, Any]] = None):
         """
         Initialize the model.
 
@@ -46,18 +52,12 @@ class BaseModel(ABC):
     def is_api_based(self) -> bool:
         """
         Whether this model uses an external API.
-
-        Returns:
-            Boolean indicating if the model is API-based (True) or local (False)
         """
         return True  # Default implementation, can be overridden by subclasses
 
     def get_model_info(self) -> Dict[str, Any]:
         """
         Get information about the model.
-
-        Returns:
-            Dictionary with model details
         """
         return {
             "name": self.model_name,

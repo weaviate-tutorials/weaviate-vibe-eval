@@ -1,8 +1,7 @@
 import anthropic
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 
-from weaviate_vibe_eval.models.base_model import BaseModel
-from weaviate_vibe_eval.models.model_names import ModelNames
+from weaviate_vibe_eval.models.base_model import BaseModel, ModelNames
 
 
 class AnthropicModel(BaseModel):
@@ -35,11 +34,8 @@ class AnthropicModel(BaseModel):
 
         Args:
             prompt: The input prompt for the model
-            temperature: Controls randomness in generation (if None, use API default)
+            temperature: Controls randomness in generation
             max_tokens: Maximum number of tokens to generate
-
-        Returns:
-            Generated text as a string
         """
         # Prepare API parameters
         params = {
