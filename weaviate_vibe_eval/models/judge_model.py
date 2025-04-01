@@ -81,9 +81,36 @@ recalling an older version of the API than the canonical implementation.
 {canonical_code}
 ```
 
+### Focus Areas for Weaviate API Evaluation
+When analyzing the code, pay special attention to these aspects of Weaviate client library usage, such as:
+
+1. **Client Configuration**: Check initialization parameters, authentication methods, and connection settings.
+
+2. **Collection Definitions**: Examine how collection definitions are created, including:
+   - Collection names and properties
+   - Data types and cross-references
+   - Vectorizer and vector index configuration settings
+   - Inverted indices and tokenization
+
+3. **Query Construction**: Assess the query building approach, including:
+   - Filter syntax and structure
+   - Property selection and projection
+   - Near vector parameters (distance, certainty)
+   - Query operators (And, Or, Not)
+
+4. **Data Operations**: Review object creation, retrieval, updates and deletions, focusing on:
+   - Batch vs. single operations
+   - UUID handling
+   - Vector embedding assignment
+   - References between objects
+
+5. **API Version Compatibility**: Note any usage of deprecated methods or parameters compared to the canonical implementation.
+
+Keep in mind that not all tasks require all of these operations.
+
 ### Instructions
 1. Analyze how similar the generated code is to the canonical implementation.
-2. Identify key differences in approach, structure, functionality, and API usage.
+2. Identify key differences in the API usage. Focus on the differences in how it uses the Weaviate client library, not any other differences.
 3. Explicitly state the differences in usage, such as classes, functions, or parameters.
 4. Evaluate a similarity score from 1-5 (where 5 means nearly identical in approach and functionality).
 5. Provide a concise summary of the differences (1-2 sentences).
@@ -91,16 +118,6 @@ recalling an older version of the API than the canonical implementation.
 Focus ONLY on comparing the implementations, not on evaluating correctness or general code quality.
 
 Please format your response as follows:
-```
-Similarity Score: X/5
-
-Key Differences:
-- [Difference 1]
-- [Difference 2]
-...
-
-Differences Summary:
-[A brief summary of the main differences]
 ```
 """
 

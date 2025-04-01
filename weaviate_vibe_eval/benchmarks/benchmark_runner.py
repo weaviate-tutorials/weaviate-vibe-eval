@@ -12,7 +12,7 @@ from weaviate_vibe_eval.utils.code_execution import (
     extract_python_code,
 )
 from weaviate_vibe_eval.models import create_model
-from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS
+from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS, TASK_TEMPLATES
 from weaviate_vibe_eval.models.judge_model import JudgeModel
 from weaviate_vibe_eval.benchmarks.canonical_implementations import (
     CANONICAL_IMPLEMENTATIONS,
@@ -39,7 +39,9 @@ class BenchmarkRunner:
         # Get list of unique providers from selected models (for reporting purposes)
         self.providers = list(set(model.provider for model in self.models))
 
-        self.task_ids = tasks  # None means all tasks
+        # Expand task names to include all variants
+        self.task_ids = self._expand_task_names(tasks)
+
         self.verbose = verbose
         self.docker_executor = None
         self.env_vars = {}
@@ -47,6 +49,32 @@ class BenchmarkRunner:
         self.use_judge = use_judge
         self.judge_model = judge_model or ModelNames.CLAUDE_3_7_SONNET_20250219
         self.judge = None if not use_judge else JudgeModel(model_name=self.judge_model)
+
+    def _expand_task_names(self, task_names: Optional[List[str]]) -> Optional[List[str]]:
+        """
+        Expand base task names to include all variants.
+        For example, 'connect' expands to ['zero_shot_connect', 'in_context_connect']
+
+        If task_names is None, returns None (indicating all tasks should run).
+        """
+        if task_names is None:
+            return None
+
+        expanded_tasks = []
+
+        for task_name in task_names:
+            # Check if it's already a fully qualified task ID
+            if task_name in BENCHMARK_TASKS:
+                expanded_tasks.append(task_name)
+            # Check if it's a base task name
+            elif task_name in TASK_TEMPLATES:
+                # Add all variants of this task
+                task_variants = [t for t in BENCHMARK_TASKS.keys() if t.endswith(f"_{task_name}")]
+                expanded_tasks.extend(task_variants)
+            else:
+                print(f"Warning: Unknown task '{task_name}'. Skipping.")
+
+        return expanded_tasks
 
     def run_benchmarks(self):
         """Run all benchmarks and collect results."""
@@ -56,6 +84,22 @@ class BenchmarkRunner:
 
         # Determine which tasks to run
         tasks_to_run = self.task_ids or list(BENCHMARK_TASKS.keys())
+
+        # Group tasks by base name for better reporting
+        task_groups = {}
+        for task_id in tasks_to_run:
+            # Extract base task name (e.g., "connect" from "zero_shot_connect")
+            parts = task_id.split('_')
+            if len(parts) >= 2:
+                base_name = parts[-1]  # Last part is the base name
+                if base_name not in task_groups:
+                    task_groups[base_name] = []
+                task_groups[base_name].append(task_id)
+
+        # Print task information
+        for base_name, variants in task_groups.items():
+            variant_names = [v.replace(f"_{base_name}", "") for v in variants]
+            print(f"Task '{base_name}': Running {len(variants)} variants ({', '.join(variant_names)})")
 
         # Setup benchmarks
         self.setup()
@@ -248,22 +292,20 @@ class BenchmarkRunner:
         """Print a summary of benchmark results."""
         print("\n=== BENCHMARK SUMMARY ===")
 
-        # Summary by model
-        total_success = 0
-        total_tasks = 0
+        # Add code comparison summary if available
+        if self.use_judge:
+            print("\n--- Code Comparison Summary ---")
+            for model_id, model_results in self.results.items():
+                print(f"\n{model_id}:")
+                for task_id, task_result in model_results.items():
+                    if "code_comparison" in task_result:
+                        comp_result = task_result["code_comparison"]
+                        similarity = comp_result.get("similarity_score", "N/A")
+                        print(f"  {task_id}: Similarity score {similarity}/5")
 
-        for model_id, model_results in self.results.items():
-            success_count = sum(
-                1 for r in model_results.values() if r.get("success", False)
-            )
-            print(f"{model_id}: {success_count}/{len(model_results)} tasks successful")
-            total_success += success_count
-            total_tasks += len(model_results)
-
-        if total_tasks > 0:
-            print(
-                f"\nOverall success rate: {total_success}/{total_tasks} ({total_success/total_tasks:.1%})"
-            )
+                        # Only print high-level differences summary
+                        if "differences_summary" in comp_result:
+                            print(f"    Summary: {comp_result['differences_summary']}")
 
         # Add detailed task-by-task breakdown
         print("\n--- Results by Task ---")
@@ -291,17 +333,19 @@ class BenchmarkRunner:
                         f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
                     )
 
-        # Add code comparison summary if available
-        if self.use_judge:
-            print("\n--- Code Comparison Summary ---")
-            for model_id, model_results in self.results.items():
-                print(f"\n{model_id}:")
-                for task_id, task_result in model_results.items():
-                    if "code_comparison" in task_result:
-                        comp_result = task_result["code_comparison"]
-                        similarity = comp_result.get("similarity_score", "N/A")
-                        print(f"  {task_id}: Similarity score {similarity}/5")
+        # Summary by model
+        total_success = 0
+        total_tasks = 0
 
-                        # Only print high-level differences summary
-                        if "differences_summary" in comp_result:
-                            print(f"    Summary: {comp_result['differences_summary']}")
+        for model_id, model_results in self.results.items():
+            success_count = sum(
+                1 for r in model_results.values() if r.get("success", False)
+            )
+            print(f"{model_id}: {success_count}/{len(model_results)} tasks successful")
+            total_success += success_count
+            total_tasks += len(model_results)
+
+        if total_tasks > 0:
+            print(
+                f"\nOverall success rate: {total_success}/{total_tasks} ({total_success/total_tasks:.1%})"
+            )
