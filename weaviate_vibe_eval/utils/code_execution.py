@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Any, Optional, Tuple, List
 
-from weaviate_vibe_eval.models.base_model import BaseModel
+from weaviate_vibe_eval.models.model import BaseModel
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 
 

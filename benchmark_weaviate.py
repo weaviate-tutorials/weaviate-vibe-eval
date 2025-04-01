@@ -8,8 +8,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 import dotenv
 
-from weaviate_vibe_eval.models.anthropic_model import AnthropicModel
-from weaviate_vibe_eval.models.base_model import ModelNames
+from weaviate_vibe_eval.models.model import AnthropicModel, ModelNames
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 from weaviate_vibe_eval.utils.code_execution import generate_and_execute
 

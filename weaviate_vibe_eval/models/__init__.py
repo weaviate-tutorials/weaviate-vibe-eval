@@ -1,4 +1,3 @@
-from weaviate_vibe_eval.models.base_model import BaseModel, ModelNames
-from weaviate_vibe_eval.models.anthropic_model import AnthropicModel
+from weaviate_vibe_eval.models.model import BaseModel, AnthropicModel, ModelNames
 
 __all__ = ["BaseModel", "AnthropicModel", "ModelNames"]
