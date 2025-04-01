@@ -2,6 +2,7 @@ import anthropic
 from typing import Dict, List, Optional, Any
 
 from weaviate_vibe_eval.models.base_model import BaseModel
+from weaviate_vibe_eval.models.model_names import ModelNames
 
 
 class AnthropicModel(BaseModel):
@@ -11,7 +12,7 @@ class AnthropicModel(BaseModel):
 
     def __init__(
         self,
-        model_name: str = "claude-3-7-sonnet-20250219",
+        model_name: str = ModelNames.CLAUDE_3_7_SONNET.value,
         api_key: Optional[str] = None,
         model_params: Optional[Dict[str, Any]] = None,
     ):

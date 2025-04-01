@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import os
 
 from weaviate_vibe_eval.models.anthropic_model import AnthropicModel
+from weaviate_vibe_eval.models.model_names import ModelNames
 
 
 # Get API key from environment variable
@@ -34,13 +35,13 @@ def mock_anthropic():
 def test_generate(mock_anthropic):
     """Test basic text generation with mock."""
     model = AnthropicModel(
-        model_name="claude-3-7-sonnet-20250219", api_key=anthropic_api_key
+        model_name=ModelNames.CLAUDE_3_7_SONNET.value, api_key=anthropic_api_key
     )
     result = model.generate("Hello", temperature=0.5, max_tokens=100)
 
     # Check correct parameters were passed
     mock_anthropic.messages.create.assert_called_once_with(
-        model="claude-3-7-sonnet-20250219",
+        model=ModelNames.CLAUDE_3_7_SONNET.value,
         max_tokens=100,
         temperature=0.5,
         messages=[{"role": "user", "content": "Hello"}],
@@ -52,12 +53,12 @@ def test_generate(mock_anthropic):
 def test_model_info():
     """Test model info returns correct data."""
     model = AnthropicModel(
-        model_name="claude-3-7-sonnet-20250219", model_params={"test": "param"}
+        model_name=ModelNames.CLAUDE_3_7_SONNET.value, model_params={"test": "param"}
     )
 
     info = model.get_model_info()
 
-    assert info["name"] == "claude-3-7-sonnet-20250219"
+    assert info["name"] == ModelNames.CLAUDE_3_7_SONNET.value
     assert info["params"] == {"test": "param"}
     assert info["api_based"] is True
 
@@ -66,7 +67,7 @@ def test_model_info():
 def test_real_api_generate():
     """Test real API call to generate text."""
     model = AnthropicModel(
-        model_name="claude-3-7-sonnet-20250219", api_key=anthropic_api_key
+        model_name=ModelNames.CLAUDE_3_7_SONNET.value, api_key=anthropic_api_key
     )
     result = model.generate("What is 2+2?", max_tokens=20)
 

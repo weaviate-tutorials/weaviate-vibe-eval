@@ -11,6 +11,7 @@ import dotenv
 from weaviate_vibe_eval.models.anthropic_model import AnthropicModel
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 from weaviate_vibe_eval.utils.code_execution import generate_and_execute
+from weaviate_vibe_eval.models.model_names import ModelNames
 
 # Load environment variables
 dotenv.load_dotenv()
@@ -268,7 +269,7 @@ def main():
     parser.add_argument(
         "--models",
         type=str,
-        default="claude-3-7-sonnet-20250219",
+        default=ModelNames.CLAUDE_3_7_SONNET.value,
         help="Comma-separated list of models",
     )
     parser.add_argument(

@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from weaviate_vibe_eval.models.model_names import ModelNames
 
 
 class BaseModel(ABC):
@@ -8,14 +11,18 @@ class BaseModel(ABC):
     All model implementations (API-based or local) should inherit from this class.
     """
 
-    def __init__(self, model_name: str, model_params: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: Union[str, "ModelNames"], model_params: Optional[Dict[str, Any]] = None):
         """
         Initialize the model.
 
         Args:
-            model_name: The name of the model to use
+            model_name: The name of the model to use (string or ModelNames enum)
             model_params: Optional parameters for the model configuration
         """
+        # Convert ModelNames enum to string if needed
+        if hasattr(model_name, "value"):
+            model_name = model_name.value
+
         self.model_name = model_name
         self.model_params = model_params or {}
 
