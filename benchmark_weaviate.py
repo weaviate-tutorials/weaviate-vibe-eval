@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 import dotenv
 
-from weaviate_vibe_eval.models.model import AnthropicModel, CohereModel, ModelNames
+from weaviate_vibe_eval.models.model import AnthropicModel, CohereModel, OpenAIModel, ModelNames
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 from weaviate_vibe_eval.utils.code_execution import generate_and_execute
 
@@ -30,6 +30,11 @@ def create_model(model_enum: ModelNames, api_key: Optional[str] = None):
         return CohereModel(
             model_name=model_name,
             api_key=api_key or os.environ.get("COHERE_API_KEY"),
+        )
+    elif provider.lower() == "openai":
+        return OpenAIModel(
+            model_name=model_name,
+            api_key=api_key or os.environ.get("OPENAI_API_KEY"),
         )
     else:
         raise ValueError(f"Unsupported provider: {provider}")
@@ -95,7 +100,7 @@ class BenchmarkRunner:
     def __init__(
         self,
         output_dir: str = "results",
-        providers: List[str] = ["anthropic", "cohere"],
+        providers: List[str] = ["anthropic", "cohere", "openai"],
         models: List[str] = None,
         tasks: List[str] = None,
         verbose: bool = False,
@@ -369,7 +374,7 @@ def main():
         "--output-dir", default="results", help="Directory to store results"
     )
     parser.add_argument(
-        "--providers", default="anthropic,cohere", help="Comma-separated list of providers"
+        "--providers", default="anthropic,cohere,openai", help="Comma-separated list of providers"
     )
     parser.add_argument(
         "--models",

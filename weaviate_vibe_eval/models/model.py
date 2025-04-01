@@ -1,5 +1,6 @@
 import anthropic
 import cohere
+from openai import OpenAI
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, Optional, Union, Any
@@ -16,6 +17,10 @@ class ModelNames(Enum):
     # Cohere models
     COHERE_COMMAND_A_03_2025 = ("command-a-03-2025", "cohere")
     COHERE_COMMAND_R_PLUS_08_2024 = ("command-r-plus-08-2024", "cohere")
+    # OpenAI models
+    OPENAI_GPT4O = ("gpt-4o", "openai")
+    OPENAI_GPT4_TURBO = ("gpt-4-turbo", "openai")
+    OPENAI_GPT35_TURBO = ("gpt-3.5-turbo", "openai")
 
     @property
     def model_name(self):
@@ -189,4 +194,59 @@ class CohereModel(BaseModel):
         # Extract the text content from the response
         if response.message and response.message.content:
             return response.message.content[0].text
+        return ""
+
+
+class OpenAIModel(BaseModel):
+    """
+    Implementation of the BaseModel for OpenAI's API.
+    """
+
+    def __init__(
+        self,
+        model_name: Union[str, ModelNames] = ModelNames.OPENAI_GPT4O,
+        api_key: Optional[str] = None,
+        model_params: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Initialize the OpenAI model.
+
+        Args:
+            model_name: The specific OpenAI model to use
+            api_key: OpenAI API key (if None, will use environment variable)
+            model_params: Optional parameters for the model configuration
+        """
+        super().__init__(model_name, model_params)
+        self.client = OpenAI(api_key=api_key)
+        self._is_api_based = True
+        self.provider = "openai"
+
+    def generate(
+        self, prompt: str, temperature: Optional[float] = None, max_tokens: int = 2000
+    ) -> str:
+        """
+        Generate text from OpenAI based on the prompt.
+
+        Args:
+            prompt: The input prompt for the model
+            temperature: Controls randomness in generation
+            max_tokens: Maximum number of tokens to generate
+        """
+        # Prepare API parameters
+        params = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+        }
+
+        # Only include temperature if it's not None
+        if temperature is not None:
+            params["temperature"] = temperature
+
+        # Make the API call with the prepared parameters
+        response = self.client.chat.completions.create(**params)
+
+        # Extract the text content from the response
+        if response.choices and len(response.choices) > 0:
+            return response.choices[0].message.content or ""
         return ""
