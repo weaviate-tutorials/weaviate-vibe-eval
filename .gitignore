@@ -1,5 +1,8 @@
 # Scratch/temp files
-temp
+temp/
+
+# Benchmark results
+results/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
