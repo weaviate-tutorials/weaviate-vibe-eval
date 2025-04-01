@@ -8,7 +8,13 @@ from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 import dotenv
 
-from weaviate_vibe_eval.models.model import AnthropicModel, CohereModel, OpenAIModel, ModelNames
+from weaviate_vibe_eval.models.model import (
+    AnthropicModel,
+    CohereModel,
+    OpenAIModel,
+    GeminiModel,
+    ModelNames,
+)
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 from weaviate_vibe_eval.utils.code_execution import generate_and_execute
 
@@ -35,6 +41,11 @@ def create_model(model_enum: ModelNames, api_key: Optional[str] = None):
         return OpenAIModel(
             model_name=model_name,
             api_key=api_key or os.environ.get("OPENAI_API_KEY"),
+        )
+    elif provider.lower() == "gemini":
+        return GeminiModel(
+            model_name=model_name,
+            api_key=api_key or os.environ.get("GEMINI_API_KEY"),
         )
     else:
         raise ValueError(f"Unsupported provider: {provider}")
@@ -100,7 +111,7 @@ class BenchmarkRunner:
     def __init__(
         self,
         output_dir: str = "results",
-        providers: List[str] = ["anthropic", "cohere", "openai"],
+        providers: List[str] = ["anthropic", "cohere", "openai", "gemini"],
         models: List[str] = None,
         tasks: List[str] = None,
         verbose: bool = False,
@@ -270,12 +281,13 @@ class BenchmarkRunner:
         try:
             # Filter models by provider
             models_to_run = [
-                model for model in self.models
-                if model.provider in self.providers
+                model for model in self.models if model.provider in self.providers
             ]
 
             if not models_to_run:
-                print(f"Warning: No models match the specified providers: {self.providers}")
+                print(
+                    f"Warning: No models match the specified providers: {self.providers}"
+                )
                 return {}
 
             # Run benchmarks for each model and task
@@ -374,15 +386,20 @@ def main():
         "--output-dir", default="results", help="Directory to store results"
     )
     parser.add_argument(
-        "--providers", default="anthropic,cohere,openai", help="Comma-separated list of providers"
+        "--providers",
+        # default="anthropic,cohere,openai,gemini",
+        default="gemini",
+        help="Comma-separated list of providers",
     )
     parser.add_argument(
         "--models",
-        help="Comma-separated list of model enum names (e.g., CLAUDE_3_7_SONNET_20250219,COHERE_COMMAND_A_03_2025)"
+        help="Comma-separated list of model enum names (e.g., CLAUDE_3_7_SONNET_20250219,COHERE_COMMAND_A_03_2025)",
     )
     parser.add_argument("--tasks", help="Comma-separated list of tasks to run")
     parser.add_argument("--verbose", action="store_true", help="Show detailed output")
-    parser.add_argument("--list-models", action="store_true", help="List available models and exit")
+    parser.add_argument(
+        "--list-models", action="store_true", help="List available models and exit"
+    )
 
     args = parser.parse_args()
 

@@ -47,9 +47,6 @@ def generate_and_execute(
 
     # Execute the code block
     execution_result = docker_executor.execute_code(
-        code=code_block,
-        inputs=inputs,
-        packages=packages,
-        env_vars=env_vars
+        code=code_block, inputs=inputs, packages=packages, env_vars=env_vars
     )
     return generated_text, execution_result

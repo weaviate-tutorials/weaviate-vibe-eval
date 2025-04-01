@@ -16,12 +16,12 @@ skip_if_no_api_key = pytest.mark.skipif(
 def test_model_info():
     """Test model info returns correct data."""
     model = OpenAIModel(
-        model_name=ModelNames.OPENAI_GPT4O, model_params={"test": "param"}
+        model_name=ModelNames.OPENAI_GPT4O_20241120, model_params={"test": "param"}
     )
 
     info = model.get_model_info()
 
-    assert info["name"] == ModelNames.OPENAI_GPT4O.model_name
+    assert info["name"] == ModelNames.OPENAI_GPT4O_20241120.model_name
     assert info["params"] == {"test": "param"}
     assert info["api_based"] is True
 
@@ -30,7 +30,7 @@ def test_model_info():
 def test_real_api_generate():
     """Test real API call to generate text."""
     model = OpenAIModel(
-        model_name=ModelNames.OPENAI_GPT4O, api_key=openai_api_key
+        model_name=ModelNames.OPENAI_GPT4O_20241120, api_key=openai_api_key
     )
     result = model.generate("What is 2+2?", max_tokens=20)
 

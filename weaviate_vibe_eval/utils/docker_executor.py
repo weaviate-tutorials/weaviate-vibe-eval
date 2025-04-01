@@ -33,7 +33,7 @@ class DockerExecutor:
         code: str,
         inputs: Optional[Dict[str, Any]] = None,
         packages: Optional[List[str]] = None,
-        env_vars: Optional[Dict[str, str]] = None
+        env_vars: Optional[Dict[str, str]] = None,
     ) -> Tuple[str, str, int]:
         """
         Execute the provided code within a Docker container.
@@ -60,6 +60,7 @@ class DockerExecutor:
             input_args = ""
             if inputs:
                 import json
+
                 input_file = os.path.join(temp_dir, "inputs.json")
                 with open(input_file, "w") as f:
                     json.dump(inputs, f)
@@ -76,11 +77,13 @@ class DockerExecutor:
 
             # Build the Docker command
             docker_cmd = [
-                "docker", "run", "--rm",
+                "docker",
+                "run",
+                "--rm",
                 f"--name=weaviate-exec-{execution_id}",
                 f"-v={temp_dir}:/code",
                 f"--network={self.network}",
-                "--workdir=/code"
+                "--workdir=/code",
             ]
 
             # Add environment variables if specified
@@ -114,11 +117,20 @@ class DockerExecutor:
         # Find and remove any stalled containers from previous executions
         try:
             result = subprocess.run(
-                ["docker", "ps", "-a", "--filter", "name=weaviate-exec-", "--format", "{{.Names}}"],
-                capture_output=True, text=True
+                [
+                    "docker",
+                    "ps",
+                    "-a",
+                    "--filter",
+                    "name=weaviate-exec-",
+                    "--format",
+                    "{{.Names}}",
+                ],
+                capture_output=True,
+                text=True,
             )
 
-            containers = result.stdout.strip().split('\n')
+            containers = result.stdout.strip().split("\n")
             for container in containers:
                 if container:  # Skip empty lines
                     subprocess.run(["docker", "rm", "-f", container], check=False)

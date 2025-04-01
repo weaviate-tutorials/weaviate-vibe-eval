@@ -6,7 +6,7 @@ dotenv.load_dotenv()
 
 from weaviate_vibe_eval.utils.code_execution import (
     extract_python_code,
-    generate_and_execute
+    generate_and_execute,
 )
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 
@@ -84,8 +84,8 @@ def test_generate_and_execute(mock_model, mock_docker_executor):
         if len(mock_docker_executor.execute_code.call_args[0]) > 0:
             code_arg = mock_docker_executor.execute_code.call_args[0][0]
         # If not, try to get it from keyword arguments
-        elif 'code' in mock_docker_executor.execute_code.call_args[1]:
-            code_arg = mock_docker_executor.execute_code.call_args[1]['code']
+        elif "code" in mock_docker_executor.execute_code.call_args[1]:
+            code_arg = mock_docker_executor.execute_code.call_args[1]["code"]
         else:
             pytest.fail("execute_code was called but 'code' argument not found")
 
@@ -143,6 +143,7 @@ client.close()
     try:
         import dotenv
         import os
+
         dotenv.load_dotenv()
 
         wcd_url = os.getenv("WCD_TEST_URL")
@@ -152,7 +153,7 @@ client.close()
         stdout, stderr, exit_code = docker_executor.execute_code(
             code=weaviate_code,
             packages=["weaviate-client", "python-dotenv", "requests"],
-            env_vars={"WCD_TEST_URL": wcd_url, "WCD_TEST_KEY": wcd_key}
+            env_vars={"WCD_TEST_URL": wcd_url, "WCD_TEST_KEY": wcd_key},
         )
 
         # Print results for debugging
