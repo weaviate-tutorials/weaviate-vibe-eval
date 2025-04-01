@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, Optional, Tuple, Union
+from typing import Dict, Any, Optional, Tuple, Union, List
 
 from weaviate_vibe_eval.models.base_model import BaseModel
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
@@ -70,7 +70,11 @@ def generate_and_execute(
 
 
 def execute_code_string(
-    code: str, docker_executor: DockerExecutor, inputs: Optional[Dict[str, Any]] = None
+    code: str,
+    docker_executor: DockerExecutor,
+    inputs: Optional[Dict[str, Any]] = None,
+    packages: Optional[List[str]] = None,
+    env_vars: Optional[Dict[str, str]] = None,
 ) -> Tuple[str, str, int]:
     """
     Execute a provided code string in a Docker container.
@@ -79,8 +83,9 @@ def execute_code_string(
         code: Python code string to execute
         docker_executor: Docker executor for safe code execution
         inputs: Optional inputs to provide to the executed code
-
+        packages: Optional list of pip packages to install before execution
+        env_vars: Optional environment variables to set before execution
     Returns:
         Tuple of (stdout, stderr, exit_code)
     """
-    return docker_executor.execute_code(code, inputs)
+    return docker_executor.execute_code(code, inputs, packages, env_vars)

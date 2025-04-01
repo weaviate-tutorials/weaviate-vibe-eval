@@ -2,7 +2,7 @@ import subprocess
 import tempfile
 import os
 import uuid
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 
 
 class DockerExecutor:
@@ -17,6 +17,7 @@ class DockerExecutor:
         memory_limit: str = "512m",
         network: str = "none",
         additional_volumes: Optional[Dict[str, str]] = None,
+        port_mappings: Optional[Dict[int, int]] = None,
     ):
         """
         Initialize the Docker executor.
@@ -27,15 +28,19 @@ class DockerExecutor:
             memory_limit: Maximum memory allocation for container
             network: Network mode (default 'none' for isolation)
             additional_volumes: Optional volumes to mount {host_path: container_path}
+            port_mappings: Optional port mappings {container_port: host_port}
         """
         self.image = image
         self.timeout = timeout
         self.memory_limit = memory_limit
         self.network = network
         self.additional_volumes = additional_volumes or {}
+        self.port_mappings = port_mappings or {}
 
     def execute_code(
-        self, code: str, inputs: Optional[Dict[str, Any]] = None
+        self, code: str, inputs: Optional[Dict[str, Any]] = None,
+        packages: Optional[List[str]] = None,
+        env_vars: Optional[Dict[str, str]] = None
     ) -> Tuple[str, str, int]:
         """
         Execute the provided code within a Docker container.
@@ -43,7 +48,8 @@ class DockerExecutor:
         Args:
             code: Python code to execute
             inputs: Optional dictionary of input variables
-
+            packages: Optional list of pip packages to install before execution
+            env_vars: Optional environment variables to set before execution
         Returns:
             Tuple of (stdout, stderr, exit_code)
         """
@@ -56,6 +62,16 @@ class DockerExecutor:
             code_file = os.path.join(temp_dir, "code.py")
             with open(code_file, "w") as f:
                 f.write(code)
+
+            # Create setup script for installing packages if needed
+            setup_command = ""
+            if packages:
+                setup_script = os.path.join(temp_dir, "setup.sh")
+                with open(setup_script, "w") as f:
+                    f.write("#!/bin/bash\n")
+                    f.write("pip install --no-cache-dir " + " ".join(packages) + "\n")
+                os.chmod(setup_script, 0o755)  # Make script executable
+                setup_command = "/code/setup.sh && "
 
             # Write inputs to a JSON file if provided
             input_args = ""
@@ -72,19 +88,28 @@ class DockerExecutor:
             for host_path, container_path in self.additional_volumes.items():
                 volumes += f" -v {host_path}:{container_path}"
 
+            # Add port mappings if specified
+            port_args = ""
+            for container_port, host_port in self.port_mappings.items():
+                port_args += f" -p {host_port}:{container_port}"
+
+            # Add environment variables if specified
+            env_args = ""
+            if env_vars:
+                for key, value in env_vars.items():
+                    env_args += f" -e {key}={value}"
+
             cmd = (
                 f"docker run --rm "
                 f"--name weaviate-exec-{execution_id} "
                 f"{volumes} "
+                f"{port_args} "
+                f"{env_args} "
                 f"--memory={self.memory_limit} "
                 f"--network={self.network} "
-                f"--read-only "
-                f"--cap-drop=ALL "
-                f"--security-opt=no-new-privileges "
                 f"--workdir /code "
-                f"--user nobody "
                 f"{self.image} "
-                f"timeout {self.timeout} python /code/code.py {input_args}"
+                f"bash -c '{setup_command}timeout {self.timeout} python /code/code.py {input_args}'"
             )
 
             # Execute the command

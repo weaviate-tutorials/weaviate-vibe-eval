@@ -1,5 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
+import dotenv
+
+dotenv.load_dotenv()
 
 from weaviate_vibe_eval.utils.code_execution import (
     extract_python_code,
@@ -92,9 +95,81 @@ def test_execute_code_string(mock_docker_executor):
     )
 
     # Check if docker_executor.execute_code was called with the right code
-    mock_docker_executor.execute_code.assert_called_once_with(code, None)
+    mock_docker_executor.execute_code.assert_called_once_with(code, None, None, None)
 
     # Check the return values
     assert stdout == "stdout output"
     assert stderr == "stderr output"
     assert exit_code == 0
+
+
+def test_weaviate_network_integration():
+    """Test executing Weaviate code with real Docker and network connectivity."""
+    # Create an actual Docker executor with network permissions
+    docker_executor = DockerExecutor(
+        network="bridge",  # Use bridge network for internet access
+    )
+
+    # Weaviate code that tests network connectivity
+    weaviate_code = """
+import weaviate
+from weaviate.classes.init import Auth
+import dotenv
+import os
+import requests
+
+dotenv.load_dotenv()
+
+# Test basic network connectivity first
+response = requests.get('https://httpbin.org/ip')
+print(f"Network connectivity test: {response.status_code}")
+
+# Then test Weaviate connection
+wcd_url = os.getenv("WCD_TEST_URL")
+wcd_key = os.getenv("WCD_TEST_KEY")
+
+if not wcd_url or not wcd_key:
+    print("WCD_TEST_URL or WCD_TEST_KEY not set in environment")
+    exit(1)
+
+print(f"Attempting to connect to Weaviate at {wcd_url}")
+
+client = weaviate.connect_to_weaviate_cloud(
+    cluster_url=wcd_url,
+    auth_credentials=Auth.api_key(wcd_key)
+)
+
+is_ready = client.is_ready()
+print(f"Weaviate connection ready: {is_ready}")
+
+client.close()
+    """
+
+    try:
+        import dotenv
+        import os
+        dotenv.load_dotenv()
+
+        wcd_url = os.getenv("WCD_TEST_URL")
+        wcd_key = os.getenv("WCD_TEST_KEY")
+
+        # Execute the code with the real Docker executor
+        stdout, stderr, exit_code = execute_code_string(
+            code=weaviate_code,
+            docker_executor=docker_executor,
+            packages=["weaviate-client", "python-dotenv", "requests"],
+            env_vars={"WCD_TEST_URL": wcd_url, "WCD_TEST_KEY": wcd_key}
+        )
+
+        # Print results for debugging
+        print(f"Stdout: {stdout}")
+        print(f"Stderr: {stderr}")
+        print(f"Exit code: {exit_code}")
+
+        # Validate the results
+        assert exit_code == 0
+        assert "Network connectivity test: 200" in stdout
+        assert "Weaviate connection ready: True" in stdout
+
+    except Exception as e:
+        pytest.fail(f"Test failed with exception: {str(e)}")
