@@ -4,8 +4,7 @@ import json
 import time
 import datetime
 import argparse
-from typing import Dict, List, Any, Optional, Union
-from pathlib import Path
+from typing import Dict, List, Any, Optional
 import dotenv
 
 from weaviate_vibe_eval.models.model import (
@@ -387,8 +386,7 @@ def main():
     )
     parser.add_argument(
         "--providers",
-        # default="anthropic,cohere,openai,gemini",
-        default="gemini",
+        default="anthropic,cohere,openai,gemini",
         help="Comma-separated list of providers",
     )
     parser.add_argument(
