@@ -288,6 +288,77 @@ class BenchmarkRunner:
 
         print(f"\nResults saved to {filename}")
 
+        # Also save results in markdown format for better readability
+        markdown_filename = f"{self.output_dir}/benchmark_results_{timestamp}.md"
+        self.save_markdown_report(markdown_filename)
+        print(f"Markdown report saved to {markdown_filename}")
+
+    def save_markdown_report(self, filename: str):
+        """Save results to disk in markdown format for better human readability."""
+        with open(filename, "w") as f:
+            # Write markdown header
+            f.write("# Weaviate Benchmark Results\n\n")
+            f.write(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            # Write summary information
+            f.write("## Summary\n\n")
+            total_success = 0
+            total_tasks = 0
+            for model_id, model_results in self.results.items():
+                success_count = sum(1 for r in model_results.values() if r.get("success", False))
+                f.write(f"- **{model_id}**: {success_count}/{len(model_results)} tasks successful\n")
+                total_success += success_count
+                total_tasks += len(model_results)
+
+            # Write detailed results organized by model
+            f.write("## Detailed Results\n\n")
+            for model_id, model_results in self.results.items():
+                f.write(f"### {model_id}\n\n")
+
+                for task_id, task_result in model_results.items():
+                    f.write(f"#### {task_id}\n\n")
+
+                    # Task description if available
+                    if task_id in BENCHMARK_TASKS:
+                        f.write(f"*{BENCHMARK_TASKS[task_id]['description']}*\n\n")
+
+                    # Success status and runtime
+                    success = task_result.get("success", False)
+                    duration = task_result.get("duration", 0)
+                    status = "✅ SUCCESS" if success else "❌ FAILURE"
+                    f.write(f"**Status**: {status} (runtime: {duration:.2f}s)\n\n")
+
+                    # Generated code
+                    f.write("**Generated Code**:\n")
+                    generated_code = extract_python_code(task_result.get("generated_text", ""))
+                    f.write(f"```python\n{generated_code}\n```\n\n")
+
+                    # Judge comparison if available
+                    if "code_comparison" in task_result:
+                        comp_result = task_result["code_comparison"]
+                        similarity = comp_result.get("similarity_score", "N/A")
+                        f.write(f"**Similarity Score**: {similarity}/5\n\n")
+
+                        if "differences_summary" in comp_result:
+                            f.write(f"**Differences Summary**: {comp_result['differences_summary']}\n\n")
+
+                        if "key_differences" in comp_result:
+                            f.write("**Key Differences**:\n")
+                            for diff in comp_result["key_differences"]:
+                                f.write(f"- {diff}\n")
+                            f.write("\n")
+
+                    # Execution output
+                    if "stdout" in task_result and task_result["stdout"]:
+                        f.write("**Output**:\n")
+                        f.write(f"```\n{task_result['stdout']}\n```\n\n")
+
+                    if "stderr" in task_result and task_result["stderr"]:
+                        f.write("**Errors**:\n")
+                        f.write(f"```\n{task_result['stderr']}\n```\n\n")
+
+                    f.write("---\n\n")
+
     def print_summary(self):
         """Print a summary of benchmark results."""
         print("\n=== BENCHMARK SUMMARY ===")
@@ -344,8 +415,3 @@ class BenchmarkRunner:
             print(f"{model_id}: {success_count}/{len(model_results)} tasks successful")
             total_success += success_count
             total_tasks += len(model_results)
-
-        if total_tasks > 0:
-            print(
-                f"\nOverall success rate: {total_success}/{total_tasks} ({total_success/total_tasks:.1%})"
-            )
