@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- These outputs will be reviewed by the project team. Keep the code output files concise if possible, without losing any functionality. This is so that the reviewer(s) can follow it easily, and reduce the time spent in reviewing it. 
