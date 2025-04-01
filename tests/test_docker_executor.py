@@ -8,7 +8,7 @@ from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 @pytest.fixture
 def docker_executor():
     """Fixture providing a DockerExecutor instance."""
-    return DockerExecutor(image="python:3.9-slim", timeout=10, memory_limit="256m")
+    return DockerExecutor(image="python:3.9-slim", timeout=10)
 
 
 def test_is_docker_available(docker_executor):

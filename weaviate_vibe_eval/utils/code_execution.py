@@ -53,16 +53,3 @@ def generate_and_execute(
         env_vars=env_vars
     )
     return generated_text, execution_result
-
-
-def execute_code_string(
-    code: str,
-    docker_executor: DockerExecutor,
-    inputs: Optional[Dict[str, Any]] = None,
-    packages: Optional[List[str]] = None,
-    env_vars: Optional[Dict[str, str]] = None,
-) -> Tuple[str, str, int]:
-    """
-    Execute a provided code string in a Docker container.
-    """
-    return docker_executor.execute_code(code, inputs, packages, env_vars)

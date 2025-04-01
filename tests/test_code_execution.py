@@ -6,8 +6,7 @@ dotenv.load_dotenv()
 
 from weaviate_vibe_eval.utils.code_execution import (
     extract_python_code,
-    generate_and_execute,
-    execute_code_string,
+    generate_and_execute
 )
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 
@@ -78,29 +77,25 @@ def test_generate_and_execute(mock_model, mock_docker_executor):
 
     # Check if docker_executor.execute_code was called with the extracted code
     mock_docker_executor.execute_code.assert_called_once()
-    code_arg = mock_docker_executor.execute_code.call_args[0][0]
-    assert "Hello from generated code!" in code_arg
+
+    # Fix: Safely access the call arguments
+    if mock_docker_executor.execute_code.call_args is not None:
+        # Check if positional arguments exist
+        if len(mock_docker_executor.execute_code.call_args[0]) > 0:
+            code_arg = mock_docker_executor.execute_code.call_args[0][0]
+        # If not, try to get it from keyword arguments
+        elif 'code' in mock_docker_executor.execute_code.call_args[1]:
+            code_arg = mock_docker_executor.execute_code.call_args[1]['code']
+        else:
+            pytest.fail("execute_code was called but 'code' argument not found")
+
+        assert "Hello from generated code!" in code_arg
+    else:
+        pytest.fail("execute_code was called but call_args is None")
 
     # Check the return values
     assert "Hello from generated code!" in generated_text
     assert result == ("stdout output", "stderr output", 0)
-
-
-def test_execute_code_string(mock_docker_executor):
-    """Test executing a code string directly."""
-    code = 'print("Direct execution")'
-
-    stdout, stderr, exit_code = execute_code_string(
-        code=code, docker_executor=mock_docker_executor
-    )
-
-    # Check if docker_executor.execute_code was called with the right code
-    mock_docker_executor.execute_code.assert_called_once_with(code, None, None, None)
-
-    # Check the return values
-    assert stdout == "stdout output"
-    assert stderr == "stderr output"
-    assert exit_code == 0
 
 
 def test_weaviate_network_integration():
@@ -154,9 +149,8 @@ client.close()
         wcd_key = os.getenv("WCD_TEST_KEY")
 
         # Execute the code with the real Docker executor
-        stdout, stderr, exit_code = execute_code_string(
+        stdout, stderr, exit_code = docker_executor.execute_code(
             code=weaviate_code,
-            docker_executor=docker_executor,
             packages=["weaviate-client", "python-dotenv", "requests"],
             env_vars={"WCD_TEST_URL": wcd_url, "WCD_TEST_KEY": wcd_key}
         )
