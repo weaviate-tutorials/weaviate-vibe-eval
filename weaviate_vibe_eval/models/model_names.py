@@ -8,7 +8,8 @@ class ModelNames(Enum):
     This centralizes model names to avoid duplication and make the codebase more maintainable.
     """
     # Anthropic models
-    CLAUDE_3_7_SONNET = "claude-3-7-sonnet-20250219"
+    CLAUDE_3_7_SONNET = "claude-3-7-sonnet-latest"
+    CLAUDE_3_5_HAIKU = "claude-3-5-haiku-latest"
 
     # Add other model names as needed, e.g.:
     # CLAUDE_3_OPUS = "claude-3-opus-20240229"
