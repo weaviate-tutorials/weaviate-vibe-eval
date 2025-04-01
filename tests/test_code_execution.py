@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from weaviate_vibe_eval.utils.code_execution import (
     extract_python_code,
     generate_and_execute,
-    execute_code_string
+    execute_code_string,
 )
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 
@@ -21,7 +21,7 @@ def hello():
 """
     extracted = extract_python_code(text_with_python)
     assert "def hello():" in extracted
-    assert "print(\"Hello world\")" in extracted
+    assert 'print("Hello world")' in extracted
 
     # Test with generic code block
     text_with_generic = """
@@ -67,7 +67,7 @@ def test_generate_and_execute(mock_model, mock_docker_executor):
     generated_text, result = generate_and_execute(
         model=mock_model,
         prompt="Write a hello world program",
-        docker_executor=mock_docker_executor
+        docker_executor=mock_docker_executor,
     )
 
     # Check if model.generate was called
@@ -88,8 +88,7 @@ def test_execute_code_string(mock_docker_executor):
     code = 'print("Direct execution")'
 
     stdout, stderr, exit_code = execute_code_string(
-        code=code,
-        docker_executor=mock_docker_executor
+        code=code, docker_executor=mock_docker_executor
     )
 
     # Check if docker_executor.execute_code was called with the right code

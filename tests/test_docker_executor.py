@@ -8,16 +8,12 @@ from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 @pytest.fixture
 def docker_executor():
     """Fixture providing a DockerExecutor instance."""
-    return DockerExecutor(
-        image="python:3.9-slim",
-        timeout=10,
-        memory_limit="256m"
-    )
+    return DockerExecutor(image="python:3.9-slim", timeout=10, memory_limit="256m")
 
 
 def test_is_docker_available(docker_executor):
     """Test detection of Docker availability."""
-    with patch('subprocess.run') as mock_run:
+    with patch("subprocess.run") as mock_run:
         # Mock Docker available
         mock_process = MagicMock()
         mock_process.returncode = 0
@@ -35,8 +31,7 @@ def test_is_docker_available(docker_executor):
 
 
 @pytest.mark.skipif(
-    not DockerExecutor().is_docker_available(),
-    reason="Docker not available"
+    not DockerExecutor().is_docker_available(), reason="Docker not available"
 )
 def test_execute_simple_code(docker_executor):
     """Test executing a simple Python code snippet."""

@@ -10,15 +10,14 @@ anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
 
 # Skip real API tests if no API key is available
 skip_if_no_api_key = pytest.mark.skipif(
-    not anthropic_api_key,
-    reason="ANTHROPIC_API_KEY environment variable not set"
+    not anthropic_api_key, reason="ANTHROPIC_API_KEY environment variable not set"
 )
 
 
 @pytest.fixture
 def mock_anthropic():
     """Fixture to mock Anthropic client."""
-    with patch('anthropic.Anthropic') as mock:
+    with patch("anthropic.Anthropic") as mock:
         mock_client = MagicMock()
         mock.return_value = mock_client
 
@@ -34,7 +33,9 @@ def mock_anthropic():
 
 def test_generate(mock_anthropic):
     """Test basic text generation with mock."""
-    model = AnthropicModel(model_name="claude-3-7-sonnet-20250219", api_key=anthropic_api_key)
+    model = AnthropicModel(
+        model_name="claude-3-7-sonnet-20250219", api_key=anthropic_api_key
+    )
     result = model.generate("Hello", temperature=0.5, max_tokens=100)
 
     # Check correct parameters were passed
@@ -42,7 +43,7 @@ def test_generate(mock_anthropic):
         model="claude-3-7-sonnet-20250219",
         max_tokens=100,
         temperature=0.5,
-        messages=[{"role": "user", "content": "Hello"}]
+        messages=[{"role": "user", "content": "Hello"}],
     )
 
     assert result == "Test response"
@@ -51,8 +52,7 @@ def test_generate(mock_anthropic):
 def test_model_info():
     """Test model info returns correct data."""
     model = AnthropicModel(
-        model_name="claude-3-7-sonnet-20250219",
-        model_params={"test": "param"}
+        model_name="claude-3-7-sonnet-20250219", model_params={"test": "param"}
     )
 
     info = model.get_model_info()
@@ -65,7 +65,9 @@ def test_model_info():
 @skip_if_no_api_key
 def test_real_api_generate():
     """Test real API call to generate text."""
-    model = AnthropicModel(model_name="claude-3-7-sonnet-20250219", api_key=anthropic_api_key)
+    model = AnthropicModel(
+        model_name="claude-3-7-sonnet-20250219", api_key=anthropic_api_key
+    )
     result = model.generate("What is 2+2?", max_tokens=20)
 
     assert "4" in result

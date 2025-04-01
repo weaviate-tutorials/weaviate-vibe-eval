@@ -16,7 +16,7 @@ class DockerExecutor:
         timeout: int = 30,
         memory_limit: str = "512m",
         network: str = "none",
-        additional_volumes: Optional[Dict[str, str]] = None
+        additional_volumes: Optional[Dict[str, str]] = None,
     ):
         """
         Initialize the Docker executor.
@@ -34,7 +34,9 @@ class DockerExecutor:
         self.network = network
         self.additional_volumes = additional_volumes or {}
 
-    def execute_code(self, code: str, inputs: Optional[Dict[str, Any]] = None) -> Tuple[str, str, int]:
+    def execute_code(
+        self, code: str, inputs: Optional[Dict[str, Any]] = None
+    ) -> Tuple[str, str, int]:
         """
         Execute the provided code within a Docker container.
 
@@ -59,6 +61,7 @@ class DockerExecutor:
             input_args = ""
             if inputs:
                 import json
+
                 input_file = os.path.join(temp_dir, "inputs.json")
                 with open(input_file, "w") as f:
                     json.dump(inputs, f)
@@ -85,18 +88,9 @@ class DockerExecutor:
             )
 
             # Execute the command
-            process = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                text=True
-            )
+            process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-            return (
-                process.stdout,
-                process.stderr,
-                process.returncode
-            )
+            return (process.stdout, process.stderr, process.returncode)
 
     def is_docker_available(self) -> bool:
         """
@@ -107,10 +101,7 @@ class DockerExecutor:
         """
         try:
             result = subprocess.run(
-                ["docker", "--version"],
-                capture_output=True,
-                text=True,
-                check=False
+                ["docker", "--version"], capture_output=True, text=True, check=False
             )
             return result.returncode == 0
         except FileNotFoundError:

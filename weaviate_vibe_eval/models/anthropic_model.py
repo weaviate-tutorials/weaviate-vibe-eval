@@ -13,7 +13,7 @@ class AnthropicModel(BaseModel):
         self,
         model_name: str = "claude-3-7-sonnet-20250219",
         api_key: Optional[str] = None,
-        model_params: Optional[Dict[str, Any]] = None
+        model_params: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize the Anthropic Claude model.
@@ -44,9 +44,7 @@ class AnthropicModel(BaseModel):
             model=self.model_name,
             max_tokens=max_tokens,
             temperature=temperature,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}],
         )
 
         # Extract the text content from the response
