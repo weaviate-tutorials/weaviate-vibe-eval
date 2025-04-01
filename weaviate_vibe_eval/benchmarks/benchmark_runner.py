@@ -1,108 +1,14 @@
-#!/usr/bin/env python
+from typing import Dict, List, Any, Optional
 import os
 import json
 import time
 import datetime
-import argparse
-from typing import Dict, List, Any, Optional
-import dotenv
 
-from weaviate_vibe_eval.models.model import (
-    AnthropicModel,
-    CohereModel,
-    OpenAIModel,
-    GeminiModel,
-    ModelNames,
-)
+from weaviate_vibe_eval.models.model import ModelNames
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
 from weaviate_vibe_eval.utils.code_execution import generate_and_execute
-
-# Load environment variables
-dotenv.load_dotenv()
-
-
-def create_model(model_enum: ModelNames, api_key: Optional[str] = None):
-    """Create a model instance based on model enum."""
-    provider = model_enum.provider
-    model_name = model_enum.model_name
-
-    if provider.lower() == "anthropic":
-        return AnthropicModel(
-            model_name=model_name,
-            api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"),
-        )
-    elif provider.lower() == "cohere":
-        return CohereModel(
-            model_name=model_name,
-            api_key=api_key or os.environ.get("COHERE_API_KEY"),
-        )
-    elif provider.lower() == "openai":
-        return OpenAIModel(
-            model_name=model_name,
-            api_key=api_key or os.environ.get("OPENAI_API_KEY"),
-        )
-    elif provider.lower() == "gemini":
-        return GeminiModel(
-            model_name=model_name,
-            api_key=api_key or os.environ.get("GEMINI_API_KEY"),
-        )
-    else:
-        raise ValueError(f"Unsupported provider: {provider}")
-
-
-# Example code for connecting to Weaviate
-EXAMPLE_CODE = """
-import weaviate
-from weaviate.classes.init import Auth
-
-client = weaviate.connect_to_weaviate_cloud(
-    cluster_url=<CLUSTER_URL>,
-    auth_credentials=Auth.api_key(<API_KEY>)
-)
-
-assert client.is_ready()
-
-client.close()
-"""
-
-# Define benchmark tasks
-BENCHMARK_TASKS = {
-    "zero_shot_connect": {
-        "prompt": """
-            Write Python code using the latest Weaviate client syntax,
-            to connect to Weaviate Cloud using the environment variables
-            WCD_TEST_URL and WCD_TEST_KEY.
-            (WCD_TEST_URL is the URL of the Weaviate Cloud instance,
-            and WCD_TEST_KEY is the API key for the Weaviate Cloud instance.)
-
-            Then check that the server is ready to accept requests.
-            Don't do anything else.
-
-            These environment variables are already set in the execution environment.
-            """,
-        "description": "Zero-shot: Basic Weaviate connection",
-    },
-    "in_context_connect": {
-        "prompt": """
-            Write Python code using the latest Weaviate client syntax,
-            to connect to Weaviate Cloud using the environment variables
-            WCD_TEST_URL and WCD_TEST_KEY.
-            (WCD_TEST_URL is the URL of the Weaviate Cloud instance,
-            and WCD_TEST_KEY is the API key for the Weaviate Cloud instance.)
-
-            Then check that the server is ready to accept requests.
-            Don't do anything else.
-
-            These environment variables are already set in the execution environment.
-
-            Here is an example of how to connect to Weaviate:
-            """
-        + EXAMPLE_CODE,
-        "description": "In-context: Basic Weaviate connection",
-    },
-    # Add more tasks as needed
-}
-
+from weaviate_vibe_eval.models import create_model
+from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS
 
 class BenchmarkRunner:
     """Core functionality for running benchmarks."""
@@ -150,6 +56,51 @@ class BenchmarkRunner:
         self.docker_executor = None
         self.env_vars = {}
         self.results = {}
+
+    def run_benchmarks(self):
+        """Run all benchmarks and collect results."""
+        print(f"Running benchmarks with {len(self.providers)} providers and {len(self.models)} models...")
+
+        # Determine which tasks to run
+        tasks_to_run = self.task_ids or list(BENCHMARK_TASKS.keys())
+
+        # Setup benchmarks
+        self.setup()
+
+        try:
+            # Filter models by provider
+            models_to_run = [
+                model for model in self.models if model.provider in self.providers
+            ]
+
+            if not models_to_run:
+                print(f"Warning: No models match the specified providers: {self.providers}")
+                return {}
+
+            # Run benchmarks for each model and task
+            for model in models_to_run:
+                provider = model.provider
+                model_name = model.model_name
+
+                print(f"\n=== Running benchmarks for {provider}/{model_name} ===")
+
+                for task_id in tasks_to_run:
+                    if task_id in BENCHMARK_TASKS:
+                        print(f"\nTask: {task_id} - {BENCHMARK_TASKS[task_id]['description']}")
+                        self.run_task_with_model(task_id, BENCHMARK_TASKS[task_id], model)
+                    else:
+                        print(f"Unknown task: {task_id}")
+
+            # Save results to disk
+            self.save_results()
+
+            # Print summary
+            self.print_summary()
+
+            return self.results
+        finally:
+            # Always clean up resources
+            self.cleanup()
 
     def setup(self):
         """Setup resources for benchmark runs."""
@@ -265,59 +216,6 @@ class BenchmarkRunner:
                 "error": str(e),
             }
 
-    def run_benchmarks(self):
-        """Run all benchmarks and collect results."""
-        print(
-            f"Running benchmarks with {len(self.providers)} providers and {len(self.models)} models..."
-        )
-
-        # Determine which tasks to run
-        tasks_to_run = self.task_ids or list(BENCHMARK_TASKS.keys())
-
-        # Setup benchmarks
-        self.setup()
-
-        try:
-            # Filter models by provider
-            models_to_run = [
-                model for model in self.models if model.provider in self.providers
-            ]
-
-            if not models_to_run:
-                print(
-                    f"Warning: No models match the specified providers: {self.providers}"
-                )
-                return {}
-
-            # Run benchmarks for each model and task
-            for model in models_to_run:
-                provider = model.provider
-                model_name = model.model_name
-
-                print(f"\n=== Running benchmarks for {provider}/{model_name} ===")
-
-                for task_id in tasks_to_run:
-                    if task_id in BENCHMARK_TASKS:
-                        print(
-                            f"\nTask: {task_id} - {BENCHMARK_TASKS[task_id]['description']}"
-                        )
-                        self.run_task_with_model(
-                            task_id, BENCHMARK_TASKS[task_id], model
-                        )
-                    else:
-                        print(f"Unknown task: {task_id}")
-
-            # Save results to disk
-            self.save_results()
-
-            # Print summary
-            self.print_summary()
-
-            return self.results
-        finally:
-            # Always clean up resources
-            self.cleanup()
-
     def save_results(self):
         """Save results to disk."""
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -375,55 +273,14 @@ class BenchmarkRunner:
                         f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
                     )
 
+def run_default_benchmarks():
+    """Run benchmarks with default settings."""
+    print("Running Weaviate benchmarks with default settings...")
 
-def main():
-    """Main entry point for the benchmark script."""
-    parser = argparse.ArgumentParser(
-        description="Run Weaviate code generation benchmarks"
-    )
-    parser.add_argument(
-        "--output-dir", default="results", help="Directory to store results"
-    )
-    parser.add_argument(
-        "--providers",
-        default="anthropic,cohere,openai,gemini",
-        help="Comma-separated list of providers",
-    )
-    parser.add_argument(
-        "--models",
-        help="Comma-separated list of model enum names (e.g., CLAUDE_3_7_SONNET_20250219,COHERE_COMMAND_A_03_2025)",
-    )
-    parser.add_argument("--tasks", help="Comma-separated list of tasks to run")
-    parser.add_argument("--verbose", action="store_true", help="Show detailed output")
-    parser.add_argument(
-        "--list-models", action="store_true", help="List available models and exit"
-    )
-
-    args = parser.parse_args()
-
-    # If requested, list available models and exit
-    if args.list_models:
-        print("Available models:")
-        for model in ModelNames:
-            print(f"  {model.name}: {model.provider}/{model.model_name}")
-        return
-
-    # Parse comma-separated lists
-    providers = args.providers.split(",")
-    models = args.models.split(",") if args.models else None
-    tasks = args.tasks.split(",") if args.tasks else None
-
-    # Run benchmarks
+    # Create and run benchmark with default settings
     runner = BenchmarkRunner(
-        output_dir=args.output_dir,
-        providers=providers,
-        models=models,
-        tasks=tasks,
-        verbose=args.verbose,
+        output_dir="results",
+        # Use default providers and models
     )
 
-    runner.run_benchmarks()
-
-
-if __name__ == "__main__":
-    main()
+    return runner.run_benchmarks()
