@@ -22,7 +22,6 @@ assert client.is_ready()
 # Close connection
 client.close()
 """,
-
     "in_context_connect": """
 import os
 import weaviate
@@ -44,6 +43,5 @@ assert client.is_ready()
 # Close connection
 client.close()
 """,
-
     # Add more canonical implementations for other tasks as needed
 }

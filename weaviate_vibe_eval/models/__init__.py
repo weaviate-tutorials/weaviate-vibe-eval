@@ -19,6 +19,7 @@ __all__ = [
     "ModelNames",
 ]
 
+
 def create_model(model_enum: ModelNames, api_key: Optional[str] = None):
     """Create a model instance based on model enum."""
     provider = model_enum.provider

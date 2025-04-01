@@ -7,11 +7,17 @@ import re
 
 from weaviate_vibe_eval.models.model import ModelNames
 from weaviate_vibe_eval.utils.docker_executor import DockerExecutor
-from weaviate_vibe_eval.utils.code_execution import generate_and_execute, extract_python_code
+from weaviate_vibe_eval.utils.code_execution import (
+    generate_and_execute,
+    extract_python_code,
+)
 from weaviate_vibe_eval.models import create_model
 from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS
 from weaviate_vibe_eval.models.judge_model import JudgeModel
-from weaviate_vibe_eval.benchmarks.canonical_implementations import CANONICAL_IMPLEMENTATIONS
+from weaviate_vibe_eval.benchmarks.canonical_implementations import (
+    CANONICAL_IMPLEMENTATIONS,
+)
+
 
 class BenchmarkRunner:
     """Core functionality for running benchmarks."""
@@ -19,42 +25,19 @@ class BenchmarkRunner:
     def __init__(
         self,
         output_dir: str = "results",
-        providers: List[str] = ["anthropic", "cohere", "openai", "gemini"],
-        models: List[str] = None,
-        tasks: List[str] = None,
+        models: Optional[List[ModelNames]] = None,
+        tasks: Optional[List[str]] = None,
         verbose: bool = False,
         use_judge: bool = False,
         judge_model: Optional[ModelNames] = None,
     ):
         self.output_dir = output_dir
-        self.providers = providers
 
-        # Convert model string names to enum values
-        if models is None:
-            # Default to all models across all providers
-            self.models = list(ModelNames)
-        else:
-            # Convert string model identifiers to enums
-            self.models = []
-            for model_str in models:
-                # Try to match by enum name first (e.g., "COHERE_COMMAND_A_03_2025")
-                try:
-                    model_enum = ModelNames[model_str]
-                    self.models.append(model_enum)
-                    continue
-                except KeyError:
-                    pass
+        # Handle model selection logic - either use specified models or all models
+        self.models = models if models is not None else list(ModelNames)
 
-                # Try to match by model name (e.g., "command-a-03-2025")
-                found = False
-                for enum_val in ModelNames:
-                    if enum_val.model_name == model_str:
-                        self.models.append(enum_val)
-                        found = True
-                        break
-
-                if not found:
-                    print(f"Warning: Unknown model '{model_str}'. Skipping.")
+        # Get list of unique providers from selected models (for reporting purposes)
+        self.providers = list(set(model.provider for model in self.models))
 
         self.task_ids = tasks  # None means all tasks
         self.verbose = verbose
@@ -67,7 +50,9 @@ class BenchmarkRunner:
 
     def run_benchmarks(self):
         """Run all benchmarks and collect results."""
-        print(f"Running benchmarks with {len(self.providers)} providers and {len(self.models)} models...")
+        provider_count = len(self.providers)
+        provider_str = f"{provider_count} provider{'s' if provider_count != 1 else ''}"
+        print(f"Running benchmarks with {len(self.models)} models from {provider_str}...")
 
         # Determine which tasks to run
         tasks_to_run = self.task_ids or list(BENCHMARK_TASKS.keys())
@@ -76,17 +61,12 @@ class BenchmarkRunner:
         self.setup()
 
         try:
-            # Filter models by provider
-            models_to_run = [
-                model for model in self.models if model.provider in self.providers
-            ]
-
-            if not models_to_run:
-                print(f"Warning: No models match the specified providers: {self.providers}")
+            if not self.models:
+                print("Warning: No models selected to run")
                 return {}
 
             # Run benchmarks for each model and task
-            for model in models_to_run:
+            for model in self.models:
                 provider = model.provider
                 model_name = model.model_name
 
@@ -94,8 +74,12 @@ class BenchmarkRunner:
 
                 for task_id in tasks_to_run:
                     if task_id in BENCHMARK_TASKS:
-                        print(f"\nTask: {task_id} - {BENCHMARK_TASKS[task_id]['description']}")
-                        self.run_task_with_model(task_id, BENCHMARK_TASKS[task_id], model)
+                        print(
+                            f"\nTask: {task_id} - {BENCHMARK_TASKS[task_id]['description']}"
+                        )
+                        self.run_task_with_model(
+                            task_id, BENCHMARK_TASKS[task_id], model
+                        )
                     else:
                         print(f"Unknown task: {task_id}")
 
@@ -217,30 +201,26 @@ class BenchmarkRunner:
                 canonical_code = CANONICAL_IMPLEMENTATIONS[task_id]
                 task_description = task_data.get("description", "")
 
-                execution_info = None
-                if execution_result:
-                    execution_info = {
-                        "stdout": stdout,
-                        "stderr": stderr,
-                        "exit_code": exit_code
-                    }
-
                 generated_code = extract_python_code(generated_text)
 
-                print(f"  🧠 Running LLM judge evaluation...")
-                evaluation = self.judge.evaluate_code(
+                print(f"  🧠 Running LLM code comparison...")
+                evaluation = self.judge.compare_code_implementations(
                     generated_code=generated_code,
                     canonical_code=canonical_code,
                     task_description=task_description,
-                    execution_result=execution_info
                 )
 
-                # Add evaluation results to task result
-                task_result["judge_evaluation"] = evaluation
+                # Add comparison results to task result
+                task_result["code_comparison"] = evaluation
 
-                # Print brief evaluation summary
-                overall_score = evaluation.get("overall_score", 0)
-                print(f"  📊 Judge score: {overall_score}/5")
+                # Print brief comparison summary
+                similarity_score = evaluation.get("similarity_score", 0)
+                print(f"  📊 Code similarity score: {similarity_score}/5")
+
+                if "key_differences" in evaluation and self.verbose:
+                    print("  Key differences:")
+                    for diff in evaluation["key_differences"]:
+                        print(f"    - {diff}")
 
             # Store results
             self.results[model_id][task_id] = task_result
@@ -311,21 +291,21 @@ class BenchmarkRunner:
                         f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
                     )
 
-        # Add judge evaluation summary if available
+        # Add code comparison summary if available
         if self.use_judge:
-            print("\n--- Judge Evaluation Summary ---")
+            print("\n--- Code Comparison Summary ---")
             for model_id, model_results in self.results.items():
                 print(f"\n{model_id}:")
                 for task_id, task_result in model_results.items():
-                    if "judge_evaluation" in task_result:
-                        eval_result = task_result["judge_evaluation"]
-                        overall = eval_result.get("overall_score", "N/A")
-                        print(f"  {task_id}: {overall}/5")
+                    if "code_comparison" in task_result:
+                        comp_result = task_result["code_comparison"]
+                        similarity = comp_result.get("similarity_score", "N/A")
+                        print(f"  {task_id}: Similarity score {similarity}/5")
 
-                        # Print individual criteria scores
-                        if "scores" in eval_result:
-                            for criterion, score in eval_result["scores"].items():
-                                print(f"    - {criterion}: {score}/5")
+                        # Only print high-level differences summary
+                        if "differences_summary" in comp_result:
+                            print(f"    Summary: {comp_result['differences_summary']}")
+
 
 def run_default_benchmarks(use_judge=False, judge_model=None):
     """Run benchmarks with default settings."""
@@ -333,15 +313,13 @@ def run_default_benchmarks(use_judge=False, judge_model=None):
 
     judge_info = ""
     if use_judge:
-        judge_info = f" with LLM judge evaluation"
+        judge_info = f" with code comparison"
 
     print(f"Running Weaviate benchmarks{judge_info}...")
 
     # Create and run benchmark with default settings
     runner = BenchmarkRunner(
-        output_dir="results",
-        use_judge=use_judge,
-        judge_model=judge_model
+        output_dir="results", use_judge=use_judge, judge_model=judge_model
     )
 
     return runner.run_benchmarks()

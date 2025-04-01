@@ -90,6 +90,7 @@ TASK_TEMPLATES = {
     # Add more task templates here
 }
 
+
 # Helper function to create in-context version of a task
 def create_in_context_task(task_key):
     """Create an in-context version of a task using its example code."""
@@ -98,9 +99,12 @@ def create_in_context_task(task_key):
         raise ValueError(f"Task template '{task_key}' not found")
 
     return {
-        "prompt": template["prompt"] + "\n\nHere is an example:\n\n" + template["example"],
+        "prompt": template["prompt"]
+        + "\n\nHere is an example:\n\n"
+        + template["example"],
         "description": f"In-context: {template['description']}",
     }
+
 
 # Helper function to create zero-shot version of a task
 def create_zero_shot_task(task_key):
@@ -113,6 +117,7 @@ def create_zero_shot_task(task_key):
         "prompt": template["prompt"],
         "description": f"Zero-shot: {template['description']}",
     }
+
 
 # Define a task factory to create different variations of tasks
 class TaskFactory:
@@ -142,11 +147,13 @@ class TaskFactory:
             f"in_context_{task_type}": create_in_context_task(task_type),
         }
 
+
 # Build benchmark tasks using the task factory
 BENCHMARK_TASKS = {}
 # Add all variants of all task types
 for task_type in TASK_TEMPLATES.keys():
     BENCHMARK_TASKS.update(TaskFactory.create_all_variants(task_type))
+
 
 # Enum-like class for task types (makes referring to tasks more explicit)
 class TaskType:
@@ -157,8 +164,11 @@ class TaskType:
     @classmethod
     def all(cls):
         """Return all task types as a list."""
-        return [v for k, v in cls.__dict__.items()
-                if not k.startswith('_') and not callable(getattr(cls, k))]
+        return [
+            v
+            for k, v in cls.__dict__.items()
+            if not k.startswith("_") and not callable(getattr(cls, k))
+        ]
 
     @classmethod
     def zero_shot_tasks(cls):
