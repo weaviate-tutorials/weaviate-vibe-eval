@@ -52,9 +52,9 @@ client.close()
 def load_benchmark_tasks(tasks_dir: str = "benchmarks") -> Dict[str, Dict[str, Any]]:
     """Load benchmark tasks from the tasks directory."""
 
-    # TODO: Extend this to load tasks from a directory
-    return {
-        "zero_shot_connect_to_weaviate": {
+    # Base prompts that can be used for both zero-shot and in-context examples
+    base_prompts = {
+        "connect_to_weaviate": {
             "prompt": """
         Write Python code using the latest Weaviate client syntax,
         to connect to Weaviate Cloud using the environment variables
@@ -69,25 +69,42 @@ def load_benchmark_tasks(tasks_dir: str = "benchmarks") -> Dict[str, Dict[str, A
         """,
             "description": "Basic Weaviate connection and operations",
         },
-        "in_context_connect_to_weaviate": {
-            "prompt": f"""
-        Write Python code using the latest Weaviate client syntax,
-        to connect to Weaviate Cloud using the environment variables
-        WCD_TEST_URL and WCD_TEST_KEY.
-        (WCD_TEST_URL is the URL of the Weaviate Cloud instance,
-        and WCD_TEST_KEY is the API key for the Weaviate Cloud instance.)
-
-        Then check that the server is ready to accept requests.
-        Don't do anything else.
-
-        These environment variables are already set in the execution environment.
-
-        Here is an example of how to connect to Weaviate:
-        {example_code}
-        """,
-            "description": "Basic Weaviate connection and operations",
-        },
+        # Add more base prompts here
     }
+
+    # Generate all tasks from base prompts
+    tasks = {}
+
+    # Add zero-shot variants
+    for key, task in base_prompts.items():
+        zero_shot_key = f"zero_shot_{key}"
+        tasks[zero_shot_key] = {
+            "prompt": task["prompt"],
+            "description": f"Zero-shot: {task['description']}",
+            "base_prompt": key
+        }
+
+    # Add in-context variants with examples
+    for key, task in base_prompts.items():
+        in_context_key = f"in_context_{key}"
+
+        # Choose the appropriate example based on task type
+        context_example = ""
+        if key == "connect_to_weaviate":
+            context_example = f"\n\nHere is an example of how to connect to Weaviate:\n{example_code}\n"
+        # Add more task-specific examples as needed
+
+        tasks[in_context_key] = {
+            "prompt": task["prompt"] + context_example,
+            "description": f"In-context: {task['description']}",
+            "base_prompt": key
+        }
+
+    # TODO: When ready to load from files, implement here
+    # if Path(tasks_dir).exists():
+    #     # Load tasks from files
+
+    return tasks
 
 
 def run_benchmark(
