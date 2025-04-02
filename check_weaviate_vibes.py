@@ -10,25 +10,29 @@ custom_benchmark = BenchmarkRunner(
         ModelNames.CLAUDE_3_7_SONNET_20250219,
         ModelNames.CLAUDE_3_5_SONNET_20241022,
         ModelNames.CLAUDE_3_5_HAIKU_20241022,
-        # ModelNames.COHERE_COMMAND_A_03_2025,
-        # ModelNames.COHERE_COMMAND_R_PLUS_08_2024,
+        ModelNames.COHERE_COMMAND_A_03_2025,
+        ModelNames.COHERE_COMMAND_R_PLUS_08_2024,
         ModelNames.GEMINI_2_5_PRO_EXP_03_25,
         ModelNames.GEMINI_2_0_FLASH_LITE,
-        # ModelNames.OPENAI_GPT4O_20241120,
-        # ModelNames.OPENAI_GPT4_TURBO,
+        ModelNames.OPENAI_GPT4O_20241120,
+        ModelNames.OPENAI_GPT4_TURBO,
         # Add any other models you want to test
     ],
     tasks=[
         # You can use base task names, which will run all variants
         "connect",
+        "create_collection",
+        "basic_semantic_search",
+        "complex_hybrid_query",
+        "batch_import",
 
-        # Or you can specify specific variants using task registry
-        task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.ZERO_SHOT),
-        task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.IN_CONTEXT),
-        task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.EXTENSIVE_EXAMPLES),
+        # # Or you can specify specific variants using task registry
+        # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.ZERO_SHOT),
+        # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.SIMPLE_EXAMPLE),
+        # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.EXTENSIVE_EXAMPLES),
     ],
-    use_judge=True,
-    verbose=True,
+    use_judge=False,
+    verbose=False,
 )
 
 custom_results = custom_benchmark.run_benchmarks()

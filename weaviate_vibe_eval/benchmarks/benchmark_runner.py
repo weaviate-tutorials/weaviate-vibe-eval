@@ -120,14 +120,31 @@ class BenchmarkRunner:
         # Load Weaviate credentials from environment
         wcd_url = os.environ.get("WCD_TEST_URL")
         wcd_key = os.environ.get("WCD_TEST_KEY")
+        openai_apikey = os.environ.get("OPENAI_API_KEY")
+        cohere_apikey = os.environ.get("COHERE_API_KEY")
+        anthropic_apikey = os.environ.get("ANTHROPIC_API_KEY")
+        gemini_apikey = os.environ.get("GEMINI_API_KEY")
 
         if not wcd_url or not wcd_key:
             print(
                 "Warning: WCD_TEST_URL or WCD_TEST_KEY not set in environment. Weaviate operations may fail."
             )
 
+        for key in [openai_apikey, cohere_apikey, anthropic_apikey, gemini_apikey]:
+            if not key:
+                print(
+                    f"Warning: {key} not set in environment. {key.split('_')[0]} operations may fail."
+                )
+
         # Prepare environment variables for Docker
-        self.env_vars = {"WCD_TEST_URL": wcd_url, "WCD_TEST_KEY": wcd_key}
+        self.env_vars = {
+            "WCD_TEST_URL": wcd_url,
+            "WCD_TEST_KEY": wcd_key,
+            "OPENAI_API_KEY": openai_apikey,
+            "COHERE_API_KEY": cohere_apikey,
+            "ANTHROPIC_API_KEY": anthropic_apikey,
+            "GEMINI_API_KEY": gemini_apikey
+        }
 
     def cleanup(self):
         """Clean up resources."""
@@ -150,6 +167,24 @@ class BenchmarkRunner:
         prompt = task_data["prompt"]
 
         try:
+            # Check if task has preparatory steps
+            task_variant_data = task_registry.get_task_variant(task_id)
+            if task_variant_data:
+                task_obj = task_variant_data.get("task")
+                if task_obj and task_obj.preparatory_steps:
+                    print("  🔄 Running preparatory steps...")
+                    # Import the tasks module to access preparatory functions
+                    from weaviate_vibe_eval.benchmarks.tasks import preload_wine_reviews, create_demo_products_collection
+                    for step in task_obj.preparatory_steps:
+                        if step == "preload_wine_reviews":
+                            print(f"    Running {step}...")
+                            preload_wine_reviews()
+                        elif step == "create_demo_products_collection":
+                            print(f"    Running {step}...")
+                            create_demo_products_collection()
+                        else:
+                            print(f"    ⚠️ Warning: Preparatory step '{step}' not found")
+
             # Create model
             model = create_model(model_enum)
             start_time = time.time()
