@@ -15,15 +15,6 @@ from weaviate_vibe_eval.models import create_model
 from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS, task_registry, TaskVariant
 from weaviate_vibe_eval.models.judge_model import JudgeModel
 
-# Import canonical implementations for backward compatibility
-# This will be removed in future versions
-try:
-    from weaviate_vibe_eval.benchmarks.canonical_implementations import (
-        CANONICAL_IMPLEMENTATIONS,
-    )
-except ImportError:
-    CANONICAL_IMPLEMENTATIONS = {}
-
 
 class BenchmarkRunner:
     """Core functionality for running benchmarks."""
@@ -231,10 +222,6 @@ class BenchmarkRunner:
                     task_obj = task_variant_data.get("task")
                     if task_obj and task_obj.canonical_implementation:
                         canonical_code = task_obj.canonical_implementation
-
-                # Fallback to old way for backward compatibility
-                if not canonical_code and task_id in CANONICAL_IMPLEMENTATIONS:
-                    canonical_code = CANONICAL_IMPLEMENTATIONS[task_id]
 
                 if canonical_code:
                     task_description = task_data.get("description", "")
