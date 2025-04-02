@@ -15,6 +15,7 @@ CONNECT_EXAMPLE = """
 import weaviate
 from weaviate.classes.init import Auth
 
+# Connect to the Weaviate Cloud instance
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=<CLUSTER_URL>,
     auth_credentials=Auth.api_key(<API_KEY>)
@@ -34,8 +35,10 @@ to create a collection named "DemoProducts" with the following properties:
 - price (number property)
 - in_stock (boolean property)
 
-Use environment variables WCD_TEST_URL and WCD_TEST_KEY to connect.
-Make sure to check that the server is ready before creating the collection.
+Connect to Weaviate Cloud using the environment variables
+WCD_TEST_URL and WCD_TEST_KEY.
+(WCD_TEST_URL is the URL of the Weaviate Cloud instance,
+and WCD_TEST_KEY is the API key for the Weaviate Cloud instance.)
 
 If the collection already exists, delete it first.
 """
@@ -46,10 +49,10 @@ import weaviate
 from weaviate.classes.init import Auth
 from weaviate.classes.config import Property, DataType
 
-# Connect to Weaviate
+# Connect to the Weaviate Cloud instance
 client = weaviate.connect_to_weaviate_cloud(
-    cluster_url=os.environ.get("WCD_TEST_URL"),
-    auth_credentials=Auth.api_key(os.environ.get("WCD_TEST_KEY"))
+    cluster_url=<CLUSTER_URL>,
+    auth_credentials=Auth.api_key(<API_KEY>)
 )
 
 # Create the collection
@@ -75,6 +78,73 @@ print(f"Created collection: {products_collection.name}")
 client.close()
 """
 
+CREATE_COLLECTION_MORE_EXAMPLES = """
+import os
+import weaviate
+from weaviate.classes.init import Auth
+from weaviate.classes.config import Property, DataType
+
+# Connect to the Weaviate Cloud instance
+client = weaviate.connect_to_weaviate_cloud(
+    cluster_url=<CLUSTER_URL>,
+    auth_credentials=Auth.api_key(<API_KEY>)
+)
+
+# Create the collection
+collection_name = "DemoProducts"
+
+# Delete the collection if it already exists (for testing purposes)
+if client.collections.exists(collection_name):
+    client.collections.delete(collection_name)
+
+products_collection = client.collections.create(
+    collection_name,
+    properties=[
+        Property(name="name", data_type=DataType.TEXT),
+        Property(name="description", data_type=DataType.TEXT),
+        Property(name="price", data_type=DataType.NUMBER),
+        Property(name="in_stock", data_type=DataType.BOOLEAN),
+    ]
+)
+
+# Another example - create a collection with a vectorizer
+from weaviate.classes.config import Configure, Property, DataType
+
+client.collections.create(
+    "Article",
+    vectorizer_config=Configure.Vectorizer.text2vec_openai(),
+    properties=[  # properties configuration is optional
+        Property(name="title", data_type=DataType.TEXT),
+        Property(name="body", data_type=DataType.TEXT),
+    ]
+)
+
+# Another example - create a collection with specific property configurations
+from weaviate.classes.config import Configure, Property, DataType, Tokenization
+
+client.collections.create(
+    "Article",
+    vectorizer_config=Configure.Vectorizer.text2vec_huggingface(),
+    properties=[
+        Property(
+            name="title",
+            data_type=DataType.TEXT,
+            vectorize_property_name=True,  # Use "title" as part of the value to vectorize
+            tokenization=Tokenization.LOWERCASE  # Use "lowecase" tokenization
+        ),
+        Property(
+            name="body",
+            data_type=DataType.TEXT,
+            skip_vectorization=True,  # Don't vectorize this property
+            tokenization=Tokenization.WHITESPACE  # Use "whitespace" tokenization
+        ),
+    ]
+)
+
+# Close connection
+client.close()
+"""
+
 # Task templates - reusable content for different task types
 TASK_TEMPLATES = {
     "connect": {
@@ -86,6 +156,11 @@ TASK_TEMPLATES = {
         "prompt": CREATE_COLLECTION_TASK,
         "description": "Create a Weaviate collection with properties",
         "example": CREATE_COLLECTION_EXAMPLE,
+    },
+    "create_collection_more_examples": {
+        "prompt": CREATE_COLLECTION_TASK,
+        "description": "Create a Weaviate collection with properties; longer in-context examples",
+        "example": CREATE_COLLECTION_MORE_EXAMPLES,
     },
     # Add more task templates here
 }
@@ -100,7 +175,7 @@ def create_in_context_task(task_key):
 
     return {
         "prompt": template["prompt"]
-        + "\n\nHere is an example:\n\n"
+        + "\n\nHere is some example code:\n\n"
         + template["example"],
         "description": f"In-context: {template['description']}",
     }
