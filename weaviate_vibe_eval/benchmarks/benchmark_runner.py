@@ -12,11 +12,17 @@ from weaviate_vibe_eval.utils.code_execution import (
     extract_python_code,
 )
 from weaviate_vibe_eval.models import create_model
-from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS, TASK_TEMPLATES
+from weaviate_vibe_eval.benchmarks.tasks import BENCHMARK_TASKS, task_registry, TaskVariant
 from weaviate_vibe_eval.models.judge_model import JudgeModel
-from weaviate_vibe_eval.benchmarks.canonical_implementations import (
-    CANONICAL_IMPLEMENTATIONS,
-)
+
+# Import canonical implementations for backward compatibility
+# This will be removed in future versions
+try:
+    from weaviate_vibe_eval.benchmarks.canonical_implementations import (
+        CANONICAL_IMPLEMENTATIONS,
+    )
+except ImportError:
+    CANONICAL_IMPLEMENTATIONS = {}
 
 
 class BenchmarkRunner:
@@ -40,7 +46,7 @@ class BenchmarkRunner:
         self.providers = list(set(model.provider for model in self.models))
 
         # Expand task names to include all variants
-        self.task_ids = self._expand_task_names(tasks)
+        self.task_ids = task_registry.expand_task_names(tasks)
 
         self.verbose = verbose
         self.docker_executor = None
@@ -49,32 +55,6 @@ class BenchmarkRunner:
         self.use_judge = use_judge
         self.judge_model = judge_model or ModelNames.CLAUDE_3_7_SONNET_20250219
         self.judge = None if not use_judge else JudgeModel(model_name=self.judge_model)
-
-    def _expand_task_names(self, task_names: Optional[List[str]]) -> Optional[List[str]]:
-        """
-        Expand base task names to include all variants.
-        For example, 'connect' expands to ['zero_shot_connect', 'in_context_connect']
-
-        If task_names is None, returns None (indicating all tasks should run).
-        """
-        if task_names is None:
-            return None
-
-        expanded_tasks = []
-
-        for task_name in task_names:
-            # Check if it's already a fully qualified task ID
-            if task_name in BENCHMARK_TASKS:
-                expanded_tasks.append(task_name)
-            # Check if it's a base task name
-            elif task_name in TASK_TEMPLATES:
-                # Add all variants of this task
-                task_variants = [t for t in BENCHMARK_TASKS.keys() if t.endswith(f"_{task_name}")]
-                expanded_tasks.extend(task_variants)
-            else:
-                print(f"Warning: Unknown task '{task_name}'. Skipping.")
-
-        return expanded_tasks
 
     def run_benchmarks(self):
         """Run all benchmarks and collect results."""
@@ -241,30 +221,45 @@ class BenchmarkRunner:
                 }
 
             # Add judge evaluation if enabled
-            if self.use_judge and task_id in CANONICAL_IMPLEMENTATIONS:
-                canonical_code = CANONICAL_IMPLEMENTATIONS[task_id]
-                task_description = task_data.get("description", "")
+            if self.use_judge:
+                # Get the canonical implementation
+                canonical_code = None
 
-                generated_code = extract_python_code(generated_text)
+                # First, try to get from task object (new way)
+                task_variant_data = task_registry.get_task_variant(task_id)
+                if task_variant_data:
+                    task_obj = task_variant_data.get("task")
+                    if task_obj and task_obj.canonical_implementation:
+                        canonical_code = task_obj.canonical_implementation
 
-                print(f"  🧠 Running LLM code comparison...")
-                evaluation = self.judge.compare_code_implementations(
-                    generated_code=generated_code,
-                    canonical_code=canonical_code,
-                    task_description=task_description,
-                )
+                # Fallback to old way for backward compatibility
+                if not canonical_code and task_id in CANONICAL_IMPLEMENTATIONS:
+                    canonical_code = CANONICAL_IMPLEMENTATIONS[task_id]
 
-                # Add comparison results to task result
-                task_result["code_comparison"] = evaluation
+                if canonical_code:
+                    task_description = task_data.get("description", "")
+                    generated_code = extract_python_code(generated_text)
 
-                # Print brief comparison summary
-                similarity_score = evaluation.get("similarity_score", 0)
-                print(f"  📊 Code similarity score: {similarity_score}/5")
+                    print(f"  🧠 Running LLM code comparison...")
+                    evaluation = self.judge.compare_code_implementations(
+                        generated_code=generated_code,
+                        canonical_code=canonical_code,
+                        task_description=task_description,
+                    )
 
-                if "key_differences" in evaluation and self.verbose:
-                    print("  Key differences:")
-                    for diff in evaluation["key_differences"]:
-                        print(f"    - {diff}")
+                    # Add comparison results to task result
+                    task_result["code_comparison"] = evaluation
+
+                    # Print brief comparison summary
+                    similarity_score = evaluation.get("similarity_score", 0)
+                    print(f"  📊 Code similarity score: {similarity_score}/5")
+
+                    if "key_differences" in evaluation and self.verbose:
+                        print("  Key differences:")
+                        for diff in evaluation["key_differences"]:
+                            print(f"    - {diff}")
+                else:
+                    print("  ⚠️ No canonical implementation found for comparison")
 
             # Store results
             self.results[model_id][task_id] = task_result

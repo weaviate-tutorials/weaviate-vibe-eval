@@ -1,4 +1,144 @@
-CONNECT_TASK = """
+"""
+Defines tasks for benchmarking LLM code generation capabilities for Weaviate.
+Each task is defined as a Task object with its variants, examples, and canonical implementations.
+"""
+
+from enum import Enum, auto
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Any
+
+
+class TaskVariant(Enum):
+    """Defines different variants of a task."""
+    ZERO_SHOT = auto()
+    IN_CONTEXT = auto()
+    EXTENSIVE_EXAMPLES = auto()
+
+
+@dataclass
+class Task:
+    """
+    Represents a benchmark task with its prompt, examples, and canonical implementation.
+    """
+    id: str
+    description: str
+    prompt: str
+    examples: Dict[TaskVariant, Optional[str]] = field(default_factory=dict)
+    canonical_implementation: str = ""  # Single canonical implementation for all variants
+
+    def get_prompt_for_variant(self, variant: TaskVariant) -> str:
+        """
+        Get the full prompt for a specific variant of the task.
+        This includes the base prompt and any examples for in-context variants.
+        """
+        if variant == TaskVariant.ZERO_SHOT:
+            return self.prompt
+
+        example = self.examples.get(variant)
+        if not example:
+            return self.prompt
+
+        return f"{self.prompt}\n\nHere is some example code:\n\n{example}"
+
+    def get_task_id_for_variant(self, variant: TaskVariant) -> str:
+        """Get the full task ID for a specific variant."""
+        variant_prefix = variant.name.lower()
+        return f"{variant_prefix}_{self.id}"
+
+    def get_variant_description(self, variant: TaskVariant) -> str:
+        """Get the description for a specific variant."""
+        variant_name = variant.name.capitalize().replace('_', ' ')
+        return f"{variant_name}: {self.description}"
+
+
+class TaskRegistry:
+    """
+    Registry that holds all task definitions and provides access to them.
+    """
+    def __init__(self):
+        self._tasks: Dict[str, Task] = {}
+        self._task_variants: Dict[str, Dict[str, Any]] = {}
+
+    def register_task(self, task: Task) -> None:
+        """
+        Register a task with the registry.
+        Also creates entries for all variants of the task.
+        """
+        self._tasks[task.id] = task
+
+        # Create entries for each variant
+        for variant in TaskVariant:
+            if variant in task.examples or variant == TaskVariant.ZERO_SHOT:
+                variant_id = task.get_task_id_for_variant(variant)
+                self._task_variants[variant_id] = {
+                    "prompt": task.get_prompt_for_variant(variant),
+                    "description": task.get_variant_description(variant),
+                    "task": task,
+                    "variant": variant
+                }
+
+    def get_task(self, task_id: str) -> Optional[Task]:
+        """Get a task by its ID."""
+        return self._tasks.get(task_id)
+
+    def get_task_variant(self, variant_id: str) -> Optional[Dict[str, Any]]:
+        """Get a task variant by its full ID."""
+        return self._task_variants.get(variant_id)
+
+    def get_all_task_variants(self) -> Dict[str, Dict[str, Any]]:
+        """Get all task variants."""
+        return self._task_variants
+
+    def get_all_tasks(self) -> Dict[str, Task]:
+        """Get all base tasks."""
+        return self._tasks
+
+    def get_variant_ids_for_task(self, task_id: str) -> List[str]:
+        """Get all variant IDs for a specific task."""
+        task = self.get_task(task_id)
+        if not task:
+            return []
+
+        return [
+            task.get_task_id_for_variant(variant)
+            for variant in TaskVariant
+            if variant in task.examples or variant == TaskVariant.ZERO_SHOT
+        ]
+
+    def expand_task_names(self, task_names: Optional[List[str]]) -> Optional[List[str]]:
+        """
+        Expand base task names to include all variants.
+        For example, 'connect' expands to ['zero_shot_connect', 'in_context_connect']
+
+        If task_names is None, returns None (indicating all tasks should run).
+        """
+        if task_names is None:
+            return None
+
+        expanded_tasks = []
+
+        for task_name in task_names:
+            # Check if it's already a fully qualified task variant ID
+            if task_name in self._task_variants:
+                expanded_tasks.append(task_name)
+            # Check if it's a base task name
+            elif task_name in self._tasks:
+                # Add all variants of this task
+                expanded_tasks.extend(self.get_variant_ids_for_task(task_name))
+            else:
+                print(f"Warning: Unknown task '{task_name}'. Skipping.")
+
+        return expanded_tasks
+
+
+# Define the task registry instance
+task_registry = TaskRegistry()
+
+# Define the connect task
+connect_task = Task(
+    id="connect",
+    description="Basic Weaviate connection",
+    prompt="""
 Write Python code using the latest Weaviate client syntax,
 to connect to Weaviate Cloud using the environment variables
 WCD_TEST_URL and WCD_TEST_KEY.
@@ -7,11 +147,9 @@ and WCD_TEST_KEY is the API key for the Weaviate Cloud instance.)
 
 Then check that the server is ready to accept requests.
 Don't do anything else.
-"""
-
-
-# Example code for connecting to Weaviate
-CONNECT_EXAMPLE = """
+""",
+    examples={
+        TaskVariant.IN_CONTEXT: """
 import weaviate
 from weaviate.classes.init import Auth
 
@@ -25,9 +163,35 @@ assert client.is_ready()
 
 client.close()
 """
+    },
+    canonical_implementation="""
+import os
+import weaviate
+from weaviate.classes.init import Auth
 
-# Define more task prompts and examples
-CREATE_COLLECTION_TASK = """
+# Get credentials from environment variables
+cluster_url = os.environ.get("WCD_TEST_URL")
+api_key = os.environ.get("WCD_TEST_KEY")
+
+# Connect to Weaviate
+client = weaviate.connect_to_weaviate_cloud(
+    cluster_url=cluster_url,
+    auth_credentials=Auth.api_key(api_key)
+)
+
+# Verify connection
+assert client.is_ready()
+
+# Close connection
+client.close()
+"""
+)
+
+# Define the create collection task
+create_collection_task = Task(
+    id="create_collection",
+    description="Create a Weaviate collection with properties",
+    prompt="""
 Write Python code using the latest Weaviate client syntax,
 to create a collection named "DemoProducts" with the following properties:
 - name (text property)
@@ -41,9 +205,9 @@ WCD_TEST_URL and WCD_TEST_KEY.
 and WCD_TEST_KEY is the API key for the Weaviate Cloud instance.)
 
 If the collection already exists, delete it first.
-"""
-
-CREATE_COLLECTION_EXAMPLE = """
+""",
+    examples={
+        TaskVariant.IN_CONTEXT: """
 import os
 import weaviate
 from weaviate.classes.init import Auth
@@ -76,9 +240,8 @@ print(f"Created collection: {products_collection.name}")
 
 # Close connection
 client.close()
-"""
-
-CREATE_COLLECTION_MORE_EXAMPLES = """
+""",
+        TaskVariant.EXTENSIVE_EXAMPLES: """
 import os
 import weaviate
 from weaviate.classes.init import Auth
@@ -144,94 +307,58 @@ client.collections.create(
 # Close connection
 client.close()
 """
-
-# Task templates - reusable content for different task types
-TASK_TEMPLATES = {
-    "connect": {
-        "prompt": CONNECT_TASK,
-        "description": "Basic Weaviate connection",
-        "example": CONNECT_EXAMPLE,
     },
-    "create_collection": {
-        "prompt": CREATE_COLLECTION_TASK,
-        "description": "Create a Weaviate collection with properties",
-        "example": CREATE_COLLECTION_EXAMPLE,
-    },
-    "create_collection_more_examples": {
-        "prompt": CREATE_COLLECTION_TASK,
-        "description": "Create a Weaviate collection with properties; longer in-context examples",
-        "example": CREATE_COLLECTION_MORE_EXAMPLES,
-    },
-    # Add more task templates here
-}
+    canonical_implementation="""
+import os
+import weaviate
+from weaviate.classes.init import Auth
+from weaviate.classes.config import Property, DataType
 
+# Get credentials from environment variables
+cluster_url = os.environ.get("WCD_TEST_URL")
+api_key = os.environ.get("WCD_TEST_KEY")
 
-# Helper function to create in-context version of a task
-def create_in_context_task(task_key):
-    """Create an in-context version of a task using its example code."""
-    template = TASK_TEMPLATES.get(task_key)
-    if not template:
-        raise ValueError(f"Task template '{task_key}' not found")
+# Connect to Weaviate
+client = weaviate.connect_to_weaviate_cloud(
+    cluster_url=cluster_url,
+    auth_credentials=Auth.api_key(api_key)
+)
 
-    return {
-        "prompt": template["prompt"]
-        + "\n\nHere is some example code:\n\n"
-        + template["example"],
-        "description": f"In-context: {template['description']}",
-    }
+# Create the collection
+collection_name = "DemoProducts"
 
+# Delete the collection if it already exists
+if client.collections.exists(collection_name):
+    client.collections.delete(collection_name)
 
-# Helper function to create zero-shot version of a task
-def create_zero_shot_task(task_key):
-    """Create a zero-shot version of a task (no examples)."""
-    template = TASK_TEMPLATES.get(task_key)
-    if not template:
-        raise ValueError(f"Task template '{task_key}' not found")
+products_collection = client.collections.create(
+    collection_name,
+    properties=[
+        Property(name="name", data_type=DataType.TEXT),
+        Property(name="description", data_type=DataType.TEXT),
+        Property(name="price", data_type=DataType.NUMBER),
+        Property(name="in_stock", data_type=DataType.BOOLEAN),
+    ]
+)
 
-    return {
-        "prompt": template["prompt"],
-        "description": f"Zero-shot: {template['description']}",
-    }
+# Close connection
+client.close()
+"""
+)
 
+# Register all tasks
+task_registry.register_task(connect_task)
+task_registry.register_task(create_collection_task)
 
-# Define a task factory to create different variations of tasks
-class TaskFactory:
-    @staticmethod
-    def create_task(task_type, variant):
-        """Create a task with the specified type and variant.
-
-        Args:
-            task_type: The type of task (e.g., "connect", "create_collection")
-            variant: The variant of the task (e.g., "zero_shot", "in_context")
-
-        Returns:
-            A task dictionary with prompt and description
-        """
-        if variant == "zero_shot":
-            return create_zero_shot_task(task_type)
-        elif variant == "in_context":
-            return create_in_context_task(task_type)
-        else:
-            raise ValueError(f"Unknown task variant: {variant}")
-
-    @staticmethod
-    def create_all_variants(task_type):
-        """Create all variants of a task type."""
-        return {
-            f"zero_shot_{task_type}": create_zero_shot_task(task_type),
-            f"in_context_{task_type}": create_in_context_task(task_type),
-        }
-
-
-# Build benchmark tasks using the task factory
-BENCHMARK_TASKS = {}
-# Add all variants of all task types
-for task_type in TASK_TEMPLATES.keys():
-    BENCHMARK_TASKS.update(TaskFactory.create_all_variants(task_type))
-
+# For backward compatibility
+BENCHMARK_TASKS = task_registry.get_all_task_variants()
 
 # Enum-like class for task types (makes referring to tasks more explicit)
 class TaskType:
+    """
+    Enum-like class for task types.
+    Provides constants for all registered task variants.
+    """
     # Dynamic generation of task constants
     for task_id in BENCHMARK_TASKS.keys():
         locals()[task_id.upper()] = task_id
@@ -254,3 +381,8 @@ class TaskType:
     def in_context_tasks(cls):
         """Return all in-context tasks."""
         return [v for v in cls.all() if v.startswith("in_context_")]
+
+    @classmethod
+    def extensive_examples_tasks(cls):
+        """Return all tasks with extensive examples."""
+        return [v for v in cls.all() if v.startswith("extensive_examples_")]

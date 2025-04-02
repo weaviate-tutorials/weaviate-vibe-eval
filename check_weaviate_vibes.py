@@ -1,6 +1,7 @@
 # run_benchmarks.py
 from weaviate_vibe_eval.models.model import ModelNames
 from weaviate_vibe_eval.benchmarks.benchmark_runner import BenchmarkRunner
+from weaviate_vibe_eval.benchmarks.tasks import task_registry, TaskVariant
 
 # Only run with specific models
 custom_benchmark = BenchmarkRunner(
@@ -18,9 +19,13 @@ custom_benchmark = BenchmarkRunner(
         # Add any other models you want to test
     ],
     tasks=[
+        # You can use base task names, which will run all variants
         "connect",
-        "create_collection",
-        "create_collection_more_examples",
+
+        # Or you can specify specific variants using task registry
+        task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.ZERO_SHOT),
+        task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.IN_CONTEXT),
+        task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.EXTENSIVE_EXAMPLES),
     ],
     use_judge=True,
     verbose=True,
