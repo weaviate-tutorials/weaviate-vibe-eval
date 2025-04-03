@@ -31,7 +31,7 @@ products_collection = client.collections.create(
         Property(name="name", data_type=DataType.TEXT),
         Property(name="description", data_type=DataType.TEXT),
         Property(name="price", data_type=DataType.NUMBER),
-        Property(name="in_stock", data_type=DataType.BOOLEAN),
+        Property(name="in_stock", data_type=DataType.BOOL),
     ]
 )
 
@@ -47,6 +47,7 @@ client.collections.create(
     properties=[  # properties configuration is optional
         Property(name="title", data_type=DataType.TEXT),
         Property(name="body", data_type=DataType.TEXT),
+        Property(name="published", data_type=DataType.BOOL),
     ]
 )
 
