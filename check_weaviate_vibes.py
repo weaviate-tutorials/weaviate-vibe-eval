@@ -22,9 +22,9 @@ custom_benchmark = BenchmarkRunner(
         # You can use base task names, which will run all variants
         "connect",
         "create_collection",
+        "batch_import",
         "basic_semantic_search",
         "complex_hybrid_query",
-        "batch_import",
 
         # # Or you can specify specific variants using task registry
         # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.ZERO_SHOT),

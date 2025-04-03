@@ -403,25 +403,55 @@ class BenchmarkRunner:
         for model_results in self.results.values():
             all_task_ids.update(model_results.keys())
 
-        # Print results for each task
+        # Group tasks by their base name and example type
+        task_groups = {}
         for task_id in sorted(all_task_ids):
-            print(f"\nTask: {task_id}")
-            if task_id in BENCHMARK_TASKS:
-                print(f"Description: {BENCHMARK_TASKS[task_id]['description']}")
+            # Extract base task name (e.g., "connect" from "zero_shot_connect")
+            parts = task_id.split('_')
+            if len(parts) >= 2:
+                base_name = parts[-1]  # Last part is the base name
+                example_type = '_'.join(parts[:-1])  # Everything before the last part
 
-            for model_id in self.results.keys():
-                if task_id in self.results[model_id]:
-                    result = self.results[model_id][task_id]
-                    success = result.get("success", False)
-                    duration = result.get("duration", 0)
-                    exit_code = result.get("exit_code", "N/A")
+                if base_name not in task_groups:
+                    task_groups[base_name] = {
+                        "Zero-Shot": [],
+                        "Simple Example": [],
+                        "Extensive Examples": []
+                    }
 
-                    status = "✅ PASSED" if success else "❌ FAILED"
-                    print(
-                        f"  {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
-                    )
+                # Map the example type to the appropriate group
+                if example_type == "zero_shot":
+                    task_groups[base_name]["Zero-Shot"].append(task_id)
+                elif example_type == "simple_example":
+                    task_groups[base_name]["Simple Example"].append(task_id)
+                elif example_type == "extensive_examples":
+                    task_groups[base_name]["Extensive Examples"].append(task_id)
+
+        # Print results for each base task
+        for base_name, example_groups in task_groups.items():
+            print(f"\nTask: {base_name}")
+            if base_name in BENCHMARK_TASKS:
+                print(f"Description: {BENCHMARK_TASKS[base_name]['description']}")
+
+            # Print results for each example type
+            for example_type, task_ids in example_groups.items():
+                if task_ids:  # Only print if there are tasks for this example type
+                    print(f"\n  {example_type}:")
+                    for task_id in sorted(task_ids):
+                        for model_id in self.results.keys():
+                            if task_id in self.results[model_id]:
+                                result = self.results[model_id][task_id]
+                                success = result.get("success", False)
+                                duration = result.get("duration", 0)
+                                exit_code = result.get("exit_code", "N/A")
+
+                                status = "✅ PASSED" if success else "❌ FAILED"
+                                print(
+                                    f"    {model_id}: {status} in {duration:.2f}s (exit code: {exit_code})"
+                                )
 
         # Summary by model
+        print("\n--- Overall Results by Model ---")
         total_success = 0
         total_tasks = 0
 
