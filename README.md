@@ -2,6 +2,16 @@
 
 Evaluate LLMs on their ability to generate correct Weaviate code in zero-shot and few-shot scenarios.
 
+## How it works
+
+This repo contains a script `check_weaviate_vibes.py` that runs a set of benchmarks on a given LLM.
+
+Each benchmark includes a task and a canonical implementation. The LLM is scored on its ability to generate correct Weaviate code for each task.
+
+The generated task is run through a Docker container to automatically check the code, and the results are saved to the `results` directory.
+
+There are variants of each benchmark, so that the LLM can be evaluated on its ability to generate correct Weaviate code as a zero-shot, or with various types of in-context examples.
+
 ## Supported Models
 
 - API-based: OpenAI, Anthropic, Claude, Gemini
@@ -11,16 +21,14 @@ Evaluate LLMs on their ability to generate correct Weaviate code in zero-shot an
 
 - Connect to Weaviate Cloud
 - Create and manage collections
-- CRUD operations + batch import
+- Batch import
 - Querying (semantic, filters, hybrid)
-- RAG patterns
-- Error handling
 
 ## Setup
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/weaviate-vibe-eval.git
+git clone git@github.com:weaviate-tutorials/weaviate-vibe-eval.git
 cd weaviate-vibe-eval
 
 # Set up environment
@@ -36,6 +44,9 @@ pip install -e .
 # OPENAI_API_KEY=your_key
 # WCD_TEST_URL=your_weaviate_cloud_url
 # WCD_TEST_KEY=your_weaviate_api_key
+
+# Build docker image
+See [docker/README.md](docker/README.md)
 ```
 
 ## Usage
