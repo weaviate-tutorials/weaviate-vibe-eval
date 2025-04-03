@@ -35,6 +35,7 @@ cd weaviate-vibe-eval
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -e .
+# This should install all main dependencies - if not, see requirements.txt / pyproject.toml
 
 # Set environment variables
 # Create a .env file with your API keys:
