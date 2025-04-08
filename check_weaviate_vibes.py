@@ -15,7 +15,9 @@ custom_benchmark = BenchmarkRunner(
         ModelNames.GEMINI_2_5_PRO_EXP_03_25,
         ModelNames.GEMINI_2_0_FLASH_LITE,
         ModelNames.OPENAI_GPT4O_20241120,
-        ModelNames.OPENAI_GPT4_TURBO,
+        ModelNames.OPENAI_GPT4O_MINI_20240718,
+        ModelNames.OPENAI_GPT4_5_PREVIEW_20250227,
+        ModelNames.OPENAI_O3_MINI_20250131
         # Add any other models you want to test
     ],
     tasks=[

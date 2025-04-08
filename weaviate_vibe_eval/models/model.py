@@ -22,7 +22,9 @@ class ModelNames(Enum):
     COHERE_COMMAND_R_PLUS_08_2024 = ("command-r-plus-08-2024", "cohere")
     # OpenAI models
     OPENAI_GPT4O_20241120 = ("gpt-4o-2024-11-20", "openai")
-    OPENAI_GPT4_TURBO = ("gpt-4o-mini-2024-07-18", "openai")
+    OPENAI_GPT4O_MINI_20240718 = ("gpt-4o-mini-2024-07-18", "openai")
+    OPENAI_GPT4_5_PREVIEW_20250227 = ("gpt-4.5-preview-2025-02-27", "openai")
+    OPENAI_O3_MINI_20250131 = ("o3-mini-2025-01-31", "openai")
     # Gemini models
     GEMINI_2_5_PRO_EXP_03_25 = ("gemini-2.5-pro-exp-03-25", "gemini")
     GEMINI_2_0_FLASH_LITE = ("gemini-2.0-flash-lite", "gemini")
@@ -245,12 +247,17 @@ class OpenAIModel(BaseModel):
         params = {
             "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": max_tokens,
         }
+
+        if self.model_name == ModelNames.OPENAI_O3_MINI_20250131.model_name:
+            params["max_completion_tokens"] = max_tokens
+        else:
+            params["max_tokens"] = max_tokens
 
         # Only include temperature if it's not None
         if temperature is not None:
-            params["temperature"] = temperature
+            if self.model_name != ModelNames.OPENAI_O3_MINI_20250131.model_name:
+                params["temperature"] = temperature
 
         # Make the API call with the prepared parameters
         response = self.client.chat.completions.create(**params)
