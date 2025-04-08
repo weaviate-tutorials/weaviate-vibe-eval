@@ -2,16 +2,24 @@
 # To be used as one big context for the LLM to reference.
 
 EXTENSIVE_EXAMPLE_SET = '''
+# START_CODE_EXAMPLES
 """
+===============================================
 Essential Weaviate Python Client Examples (v4.x)
 ===============================================
 
 This document contains key examples for using the Weaviate Python client (v4.x).
+
+The page also includes comments that indicate to the user where they may find more information.
+
+If the provided examples are not sufficient as in-context example for code generation,
+indicate to the user in comments where they may find more information.
 """
 
 # ========================
 # 1. CLIENT INSTANTIATION
 # ========================
+# For more information, see the Python Client library page: https://www.weaviate.io/developers/weaviate/client-libraries/python
 
 """
 Connecting to Weaviate instances (local, cloud, custom)
@@ -70,6 +78,7 @@ finally:
 # =========================
 # 2. COLLECTION MANAGEMENT
 # =========================
+# For more information, see the How-to Manage Collections page: https://weaviate.io/developers/weaviate/manage-data/collections
 
 """
 Creating, configuring, and managing collections
@@ -183,6 +192,7 @@ client.collections.delete("Article")
 # ========================
 # 3. DATA OPERATIONS
 # ========================
+# For more information, see the How-to Manage Data pages: https://weaviate.io/developers/weaviate/manage-data
 
 """
 Creating, updating, and retrieving objects
@@ -273,6 +283,8 @@ author_collection.data.reference_add(
 # ========================
 # 4. BATCH OPERATIONS
 # ========================
+# For more information, see the How-to batch import data page: https://weaviate.io/developers/weaviate/manage-data/import
+# And the Python Client library page: https://weaviate.io/developers/weaviate/client-libraries/python#batch-imports
 
 """
 Batch import for better performance
@@ -344,6 +356,7 @@ collection.data.insert_many(data_objects)
 # ========================
 # 5. SEARCH OPERATIONS
 # ========================
+# For more information, see the How-to search pages: https://weaviate.io/developers/weaviate/search
 
 """
 Various search methods (semantic, keyword, hybrid)
@@ -457,6 +470,7 @@ for obj in response.objects:
 # ===============================
 # 6. GENERATIVE CAPABILITIES
 # ===============================
+# For more information, see the How-to generative search page: https://weaviate.io/developers/weaviate/search/generative
 
 """
 Using generative models with Weaviate
@@ -520,6 +534,8 @@ for obj in response.objects:
 # =================================
 # 7. MULTI-TENANCY OPERATIONS
 # =================================
+# For more information, see the How-to multi-tenancy page: https://weaviate.io/developers/weaviate/manage-data/multi-tenancy
+# And the manage tenant data and temperatures page: https://weaviate.io/developers/weaviate/manage-data/tenant-states
 
 """
 Working with multi-tenant collections
@@ -573,6 +589,7 @@ response = tenant1_collection.query.near_text(
 # ========================
 # 8. ITERATING OVER DATA
 # ========================
+# For more information, see the iterator section of the Python Client library page: https://weaviate.io/developers/weaviate/client-libraries/python#collection-iterator-cursor-api
 
 """
 Iterating over large datasets
@@ -603,4 +620,6 @@ for article in collection.iterator(
 
 # Don't forget to close the client when done
 client.close()
+
+# END_CODE_EXAMPLES
 '''
