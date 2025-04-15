@@ -7,17 +7,17 @@ from weaviate_vibe_eval.benchmarks.tasks import task_registry, TaskVariant
 custom_benchmark = BenchmarkRunner(
     output_dir="results/custom",
     models=[
-        # # ANTHROPIC MODELS
-        # ModelNames.CLAUDE_3_7_SONNET_20250219,
-        # ModelNames.CLAUDE_3_5_SONNET_20241022,
-        # ModelNames.CLAUDE_3_5_HAIKU_20241022,
-        # # COHERE MODELS
-        # ModelNames.COHERE_COMMAND_A_03_2025,
-        # ModelNames.COHERE_COMMAND_R_PLUS_08_2024,
-        # # GEMINI/GOOGLE MODELS
-        # ModelNames.GEMINI_2_5_PRO_EXP_03_25,
-        # ModelNames.GEMINI_2_0_FLASH_LITE,
-        # # OPENAI MODELS
+        # ANTHROPIC MODELS
+        ModelNames.CLAUDE_3_7_SONNET_20250219,
+        ModelNames.CLAUDE_3_5_SONNET_20241022,
+        ModelNames.CLAUDE_3_5_HAIKU_20241022,
+        # COHERE MODELS
+        ModelNames.COHERE_COMMAND_A_03_2025,
+        ModelNames.COHERE_COMMAND_R_PLUS_08_2024,
+        # GEMINI/GOOGLE MODELS
+        ModelNames.GEMINI_2_5_PRO_EXP_03_25,
+        ModelNames.GEMINI_2_0_FLASH_LITE,
+        # OPENAI MODELS
         ModelNames.OPENAI_GPT4O_20241120,
         ModelNames.OPENAI_GPT4O_MINI_20240718,
         ModelNames.OPENAI_GPT4_5_PREVIEW_20250227,
@@ -29,14 +29,21 @@ custom_benchmark = BenchmarkRunner(
     ],
     tasks=[
         # You can use base task names, which will run all variants
-        # "connect",
-        # "create_collection",
-        # "batch_import",
-        # "basic_semantic_search",
-        # "complex_hybrid_query",
-        "made_up_syntax"
-
+        # ========================================================================================================================
+        # ===== These tests check the model's ability to generate working v4 Weaviate Python client code =====
+        # ========================================================================================================================
+        "connect",
+        "create_collection",
+        "batch_import",
+        "basic_semantic_search",
+        "complex_hybrid_query",
+        # ========================================================================================================================
+        # ===== The 'made_up_syntax' task is a test of non-existing syntax, to test instruction following =====
+        # ========================================================================================================================
+        # "made_up_syntax"
+        # ========================================================================================================================
         # # Or you can specify specific variants using task registry
+        # ========================================================================================================================
         # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.ZERO_SHOT),
         # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.SIMPLE_EXAMPLE),
         # task_registry.get_task("create_collection").get_task_id_for_variant(TaskVariant.EXTENSIVE_EXAMPLES),
