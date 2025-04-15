@@ -25,6 +25,9 @@ class ModelNames(Enum):
     OPENAI_GPT4O_MINI_20240718 = ("gpt-4o-mini-2024-07-18", "openai")
     OPENAI_GPT4_5_PREVIEW_20250227 = ("gpt-4.5-preview-2025-02-27", "openai")
     OPENAI_O3_MINI_20250131 = ("o3-mini-2025-01-31", "openai")
+    OPENAI_CHATGPT_4O_LATEST = ("chatgpt-4o-latest", "openai")
+    OPENAI_GPT4_1_20250414 = ("gpt-4.1-2025-04-14", "openai")
+    OPENAI_GPT4_1_MINI_20250414 = ("gpt-4.1-mini-2025-04-14", "openai")
     # Gemini models
     GEMINI_2_5_PRO_EXP_03_25 = ("gemini-2.5-pro-exp-03-25", "gemini")
     GEMINI_2_0_FLASH_LITE = ("gemini-2.0-flash-lite", "gemini")
