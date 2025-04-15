@@ -604,12 +604,77 @@ client.close()
 """
 )
 
+made_up_syntax_task = Task(
+    id="made_up_syntax",
+    description="Test made up syntax, to test instruction following",
+    prompt="""
+Write Python code using the v8 Weaviate client (`import wv8`) syntax,
+to query objects from a Weaviate ObjectStore named "Shop", with ObjectSubSets "Books" and "Games".
+
+Connect to an online WeaviateLite instance, using the environment variables
+WCD_TEST_URL and WCD_TEST_KEY.
+(WCD_TEST_URL is the URL of the WeaviateLite instance,
+and WCD_TEST_KEY is the API key for the WeaviateLite instance.)
+
+Then, ask the WeaviateLite instance to fetch objects from
+the given ObjectSubSets, based on the user query
+"space exploration related products for my nephew", using
+WeaviateLite's query decomposition feature, and a maximum of 10 results.
+
+Then, print the retrieved collection with `print(response)`.
+""",
+    examples={
+        TaskVariant.SIMPLE_EXAMPLE: """
+import wv8
+
+lite_client = wv8.connect.WeaviateLite(
+    cluster_url="https://your-weaviate-cloud-instance.url",
+    auth_credentials="your-api-key"
+)
+
+object_store = lite_client.stores.connect(store_id="shop")
+
+response = object_store.retrieve(
+    user_query="<USER_QUERY>",
+    store_query_strategy="<QUERY_STRATEGY>",  # Could be "decomposition", "agentic", "semantic", "hybrid",
+    # object_subsets=["<OBJECT_SUBSET_1>", "<OBJECT_SUBSET_2>"]  # Could include wildcards "*" or "?"
+    # max_results=<MAX_RESULTS>
+    # max_threshold=<MAX_THRESHOLD>
+    # use_graph_search=<USE_GRAPH_SEARCH>
+)
+
+print(response)
+"""
+    },
+    canonical_implementation="""
+import wv8
+import os
+
+lite_client = wv8.connect.WeaviateLite(
+    cluster_url=os.environ.get("WCD_TEST_URL"),
+    auth_credentials=os.environ.get("WCD_TEST_KEY")
+)
+
+object_store = lite_client.stores.connect(store_id="Shop")
+
+response = object_store.retrieve(
+    user_query="space exploration related products for my nephew",
+    store_query_strategy="decomposition",
+    object_subsets=["Books", "Games"],
+    max_results=10
+)
+
+print(response)
+"""
+)
+
 # Register all tasks
 task_registry.register_task(connect_task)
 task_registry.register_task(create_collection_task)
 task_registry.register_task(simple_query_task)
 task_registry.register_task(complex_hybrid_query_task)
 task_registry.register_task(batch_import_task)
+task_registry.register_task(made_up_syntax_task)
 
 # For backward compatibility
 BENCHMARK_TASKS = task_registry.get_all_task_variants()
