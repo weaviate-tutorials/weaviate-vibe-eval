@@ -14,11 +14,11 @@ custom_benchmark = BenchmarkRunner(
         ModelNames.COHERE_COMMAND_A_03_2025,
         # New models 202508
         ModelNames.CLAUDE_4_SONNET_20250514,
-        # ModelNames.CLAUDE_4_OPUS_20250514,
-        # ModelNames.GEMINI_2_5_PRO,
+        ModelNames.CLAUDE_4_OPUS_20250514,
+        ModelNames.GEMINI_2_5_PRO,
         ModelNames.GEMINI_2_5_FLASH,
         ModelNames.GEMINI_2_5_FLASH_LITE,
-        # ModelNames.OPENAI_GPT5_20250807,
+        ModelNames.OPENAI_GPT5_20250807,
         ModelNames.OPENAI_GPT5_MINI_20250807,
         ModelNames.OPENAI_GPT5_NANO_20250807,
         # ANTHROPIC MODELS
