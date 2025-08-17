@@ -4,7 +4,7 @@ WORKDIR /code
 
 # Install common Python packages used in benchmarks
 RUN pip install --no-cache-dir \
-    weaviate-client \
+    "weaviate-client>=4.16.7" \
     python-dotenv \
     requests \
     pytest

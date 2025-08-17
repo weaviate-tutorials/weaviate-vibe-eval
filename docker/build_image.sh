@@ -4,9 +4,9 @@
 IMAGE_NAME="weaviate-vibe-benchmark"
 TAG="latest"
 
-# Build the Docker image
-echo "Building Docker image: ${IMAGE_NAME}:${TAG}"
-docker build -t ${IMAGE_NAME}:${TAG} .
+# Build the Docker image (without cache)
+echo "Building Docker image: ${IMAGE_NAME}:${TAG} (no cache)"
+docker build --no-cache -t ${IMAGE_NAME}:${TAG} .
 
 # Tag with date for versioning
 DATE_TAG=$(date "+%Y%m%d")
