@@ -260,15 +260,18 @@ class OpenAIModel(BaseModel):
             "messages": [{"role": "user", "content": prompt}],
         }
 
-        if "gpt-4" not in self.model_name:
-            params["max_completion_tokens"] = max_tokens
-        else:
+        if "gpt-4" in self.model_name:
             params["max_tokens"] = max_tokens
+        else:
+            params["max_completion_tokens"] = max_tokens
 
-        # Only include temperature if it's not None
+        # Only include temperature if it's not None AND older model
         if temperature is not None:
-            if self.model_name != ModelNames.OPENAI_O3_MINI_20250131.model_name:
+            if "gpt-4" in self.model_name:
                 params["temperature"] = temperature
+            else:
+                # TODO - remove temperature
+                print("Note - temperature is not supported in this model")
 
         # Make the API call with the prepared parameters
         response = self.client.chat.completions.create(**params)
@@ -286,7 +289,7 @@ class GeminiModel(BaseModel):
 
     def __init__(
         self,
-        model_name: Union[str, ModelNames] = ModelNames.GEMINI_2_0_FLASH_LITE,
+        model_name: Union[str, ModelNames] = ModelNames.GEMINI_2_5_FLASH_LITE,
         api_key: Optional[str] = None,
         model_params: Optional[Dict[str, Any]] = None,
     ):

@@ -7,16 +7,16 @@ from weaviate_vibe_eval.benchmarks.tasks import task_registry, TaskVariant
 custom_benchmark = BenchmarkRunner(
     output_dir="results/custom",
     models=[
-        # Predicate - previous best model 2025Apr
-        ModelNames.CLAUDE_3_7_SONNET_20250219,
+        # Predicates - previous best model 2025Apr
+        # ModelNames.CLAUDE_3_7_SONNET_20250219,
         # New models 202508
-        ModelNames.CLAUDE_4_SONNET_20250514,
-        ModelNames.CLAUDE_4_OPUS_20250514,
-        ModelNames.GEMINI_2_5_PRO,
-        ModelNames.GEMINI_2_5_FLASH,
-        ModelNames.GEMINI_2_5_FLASH_LITE,
-        ModelNames.OPENAI_GPT5_20250807,
-        ModelNames.OPENAI_GPT5_MINI_20250807,
+        # ModelNames.CLAUDE_4_SONNET_20250514,
+        # ModelNames.CLAUDE_4_OPUS_20250514,
+        # ModelNames.GEMINI_2_5_PRO,
+        # ModelNames.GEMINI_2_5_FLASH,
+        # ModelNames.GEMINI_2_5_FLASH_LITE,
+        # ModelNames.OPENAI_GPT5_20250807,
+        # ModelNames.OPENAI_GPT5_MINI_20250807,
         ModelNames.OPENAI_GPT5_NANO_20250807,
         # ANTHROPIC MODELS
         # ModelNames.CLAUDE_3_7_SONNET_20250219,
