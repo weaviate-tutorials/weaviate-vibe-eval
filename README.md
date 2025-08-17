@@ -32,9 +32,9 @@ git clone git@github.com:weaviate-tutorials/weaviate-vibe-eval.git
 cd weaviate-vibe-eval
 
 # Set up environment
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e .
+# Install uv (https://docs.astral.sh/uv/getting-started/installation/)
+uv sync
+source .venv/bin/activate
 # This should install all main dependencies - if not, see requirements.txt / pyproject.toml
 
 # Set environment variables

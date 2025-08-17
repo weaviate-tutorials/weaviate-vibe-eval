@@ -48,7 +48,7 @@ def create_demo_products_collection():
 
     client.collections.create(
         "DemoProducts",
-        vectorizer_config=Configure.Vectorizer.none(),
+        vector_config=Configure.Vectors.self_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="description", data_type=DataType.TEXT),

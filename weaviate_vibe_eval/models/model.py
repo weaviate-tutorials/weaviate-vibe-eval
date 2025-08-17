@@ -14,6 +14,8 @@ class ModelNames(Enum):
     """
 
     # Anthropic models
+    CLAUDE_4_OPUS_20250514 = ("claude-opus-4-20250514", "anthropic")
+    CLAUDE_4_SONNET_20250514 = ("claude-sonnet-4-20250514", "anthropic")
     CLAUDE_3_7_SONNET_20250219 = ("claude-3-7-sonnet-20250219", "anthropic")
     CLAUDE_3_5_SONNET_20241022 = ("claude-3-5-sonnet-20241022", "anthropic")
     CLAUDE_3_5_HAIKU_20241022 = ("claude-3-5-haiku-20241022", "anthropic")
@@ -21,14 +23,20 @@ class ModelNames(Enum):
     COHERE_COMMAND_A_03_2025 = ("command-a-03-2025", "cohere")
     COHERE_COMMAND_R_PLUS_08_2024 = ("command-r-plus-08-2024", "cohere")
     # OpenAI models
+    OPENAI_GPT5_20250807 = ("gpt-5-2025-08-07", "openai")
+    OPENAI_GPT5_MINI_20250807 = ("gpt-5-mini-2025-08-07", "openai")
+    OPENAI_GPT5_NANO_20250807 = ("gpt-5-nano-2025-08-07", "openai")
+    OPENAI_O3_MINI_20250131 = ("o3-mini-2025-01-31", "openai")
     OPENAI_GPT4O_20241120 = ("gpt-4o-2024-11-20", "openai")
     OPENAI_GPT4O_MINI_20240718 = ("gpt-4o-mini-2024-07-18", "openai")
     OPENAI_GPT4_5_PREVIEW_20250227 = ("gpt-4.5-preview-2025-02-27", "openai")
-    OPENAI_O3_MINI_20250131 = ("o3-mini-2025-01-31", "openai")
     OPENAI_CHATGPT_4O_LATEST = ("chatgpt-4o-latest", "openai")
     OPENAI_GPT4_1_20250414 = ("gpt-4.1-2025-04-14", "openai")
     OPENAI_GPT4_1_MINI_20250414 = ("gpt-4.1-mini-2025-04-14", "openai")
     # Gemini models
+    GEMINI_2_5_PRO = ("gemini-2.5-pro", "gemini")
+    GEMINI_2_5_FLASH = ("gemini-2.5-flash", "gemini")
+    GEMINI_2_5_FLASH_LITE = ("gemini-2.5-flash-lite", "gemini")
     GEMINI_2_5_PRO_EXP_03_25 = ("gemini-2.5-pro-exp-03-25", "gemini")
     GEMINI_2_0_FLASH_LITE = ("gemini-2.0-flash-lite", "gemini")
 
@@ -252,7 +260,7 @@ class OpenAIModel(BaseModel):
             "messages": [{"role": "user", "content": prompt}],
         }
 
-        if self.model_name == ModelNames.OPENAI_O3_MINI_20250131.model_name:
+        if "gpt-4" not in self.model_name:
             params["max_completion_tokens"] = max_tokens
         else:
             params["max_tokens"] = max_tokens
