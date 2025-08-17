@@ -288,12 +288,15 @@ class BenchmarkRunner:
             return task_result
         except Exception as e:
             print(f"  ❌ ERROR: {str(e)}")
-            return {
+            error_result = {
                 "success": False,
                 "timestamp": datetime.datetime.now().isoformat(),
                 "prompt": prompt,
                 "error": str(e),
             }
+            # Store the error result in self.results
+            self.results[model_id][task_id] = error_result
+            return error_result
 
     def save_results(self):
         """Save results to disk."""
