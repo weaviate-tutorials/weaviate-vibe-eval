@@ -72,5 +72,31 @@ docker/                   # Docker environment for safe code execution
 results/                  # Benchmark results output
 ```
 
+## (Rough) Diagram
+
+This diagram roughly represents how the repo works. View it on Mermaid (https://mermaid.js.org/)
+
+```mermaid
+flowchart LR
+
+    C[Prompt LLM to <br/>Generate Code<br/>For Each Model + Task] --> |LLM<br/>generates<br/>code|G[Get Python Code &<br/>Execute in <br/>Docker Container]
+    G --> H{Successful<br/>Run?}
+    H -->|Yes| I[✅ PASS]
+    H -->|No| J[❌ FAIL]
+    I --> K{More Tasks <br/>or Models?}
+    J --> K
+    K -->|Yes| C
+    K -->|No| N[Generate<br/> Report]
+
+    style C fill:#fff,stroke:#333,stroke-width:2px,color:#8e44ad
+    style G fill:#fff,stroke:#333,stroke-width:2px,color:#2980b9
+    style H fill:#fff,stroke:#333,stroke-width:2px,color:#e67e22
+    style I fill:#fff,stroke:#333,stroke-width:2px,color:#27ae60
+    style J fill:#fff,stroke:#333,stroke-width:2px,color:#e74c3c
+    style K fill:#fff,stroke:#333,stroke-width:2px,color:#34495e
+    style N fill:#fff,stroke:#333,stroke-width:2px,color:#2c3e50
+    style M fill:#fff,stroke:#333,stroke-width:2px,color:#7f8c8d
+```
+
 ## License
 MIT License
